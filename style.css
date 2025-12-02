@@ -2211,25 +2211,26 @@ textarea:focus {
 /* Responsive Ad Sizing */
 @media (max-width: 768px) {
     .ad-sidebar {
-        display: none; /* Hide sidebar ads on mobile */
+        display: none;
+        /* Hide sidebar ads on mobile */
     }
-    
+
     .ad-inline {
         max-width: 100%;
         margin: 1.5rem 0;
     }
-    
+
     .ad-banner .ad-content {
         height: 80px;
     }
-    
+
     .ad-inline .ad-content {
         height: 70px;
     }
 }
 
 /* Hide ads during study sessions */
-.pomodoro-active ~ .ad-container,
+.pomodoro-active~.ad-container,
 .pomodoro-active .ad-container {
     display: none;
 }
@@ -2268,4 +2269,242 @@ textarea:focus {
 [data-theme="dark"] .ad-toggle,
 [data-theme="midnight"] .ad-toggle {
     background: rgba(30, 41, 59, 0.9);
+}
+
+/* =========================================
+   MOBILE RESPONSIVENESS & AMAZING UI
+   ========================================= */
+
+/* Navigation Icons */
+.nav-icon {
+    font-size: 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+
+    /* Layout Restructuring */
+    .app-container {
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    /* Mobile Bottom Navigation */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: auto;
+        /* Auto height for content */
+        flex-direction: row;
+        padding: 0.5rem 0.5rem;
+        background: var(--bg-card);
+        /* Solid background for visibility */
+        border-right: none;
+        border-top: 1px solid var(--border);
+        z-index: 1000;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+        overflow: visible;
+    }
+
+    /* Hide Desktop Sidebar Elements */
+    .sidebar .brand,
+    .sidebar .btn-block,
+    /* Dark mode button */
+    .sidebar .ad-container {
+        display: none !important;
+    }
+
+    /* Navigation Links Horizontal Scroll */
+    .nav-links {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0.5rem;
+        padding: 0.25rem;
+        width: 100%;
+        justify-content: flex-start;
+        /* Allow scrolling */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    .nav-links::-webkit-scrollbar {
+        display: none;
+        /* Chrome/Safari */
+    }
+
+    .nav-link {
+        flex-direction: column;
+        padding: 0.5rem;
+        font-size: 0.7rem;
+        gap: 0.25rem;
+        text-align: center;
+        min-width: 65px;
+        white-space: nowrap;
+        border-radius: 12px;
+        justify-content: center;
+    }
+
+    .nav-link:hover {
+        padding-left: 0.5rem;
+        /* Reset hover effect */
+        background-color: transparent;
+        color: var(--primary);
+    }
+
+    .nav-link.active {
+        background-color: transparent;
+        color: var(--primary);
+    }
+
+    .nav-link.active::before {
+        bottom: 0;
+        left: 50%;
+        top: auto;
+        transform: translateX(-50%);
+        width: 20px;
+        height: 3px;
+        border-radius: 10px;
+    }
+
+    .nav-icon {
+        font-size: 1.5rem;
+        margin-bottom: 2px;
+    }
+
+    .nav-text {
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    /* Main Content Adjustments */
+    .main-content {
+        width: 100%;
+        margin-bottom: 80px;
+        /* Space for bottom nav */
+        border-radius: 0;
+        height: calc(100vh - 80px);
+        /* Adjust height */
+        overflow-y: auto;
+    }
+
+    .view-container {
+        padding: 1rem;
+        padding-bottom: 2rem;
+        /* Extra padding for bottom scroll */
+    }
+
+    /* Header Adjustments */
+    .top-bar {
+        padding: 0 1rem;
+        height: 60px;
+        position: sticky;
+        top: 0;
+    }
+
+    #page-title {
+        font-size: 1.2rem;
+    }
+
+    .user-profile #greeting {
+        display: none;
+        /* Hide greeting on mobile to save space */
+    }
+
+    #theme-btn-mobile {
+        display: inline-flex !important;
+    }
+
+    /* Grid Adjustments */
+    .grid-2,
+    .grid-3,
+    .decks-grid,
+    .subjects-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Component Tweaks */
+    .stat-card {
+        padding: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .timer-display-large {
+        font-size: 5rem;
+        margin: 2rem 0;
+    }
+
+    .mode-pills {
+        width: 100%;
+        overflow-x: auto;
+        justify-content: flex-start;
+        padding: 0.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .mode-pill {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    /* Flashcards */
+    .premium-flashcard {
+        height: 350px;
+        min-height: 300px;
+    }
+
+    .card-face {
+        padding: 1.5rem;
+    }
+
+    .face-content h3 {
+        font-size: 1.3rem;
+    }
+
+    /* Modals */
+    .modal-content,
+    .modal-content-premium {
+        width: 95%;
+        max-height: 85vh;
+        padding: 1.5rem;
+    }
+
+    /* Charts */
+    .chart-card canvas {
+        max-height: 220px;
+    }
+
+    /* Ads */
+    .ad-sidebar {
+        display: none;
+    }
+}
+
+/* Extra Small Devices */
+@media (max-width: 380px) {
+    .timer-display-large {
+        font-size: 4rem;
+    }
+
+    .nav-link {
+        min-width: 55px;
+        font-size: 0.65rem;
+    }
+
+    .nav-icon {
+        font-size: 1.3rem;
+    }
 }
