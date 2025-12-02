@@ -11,15 +11,30 @@ const adManager = new AdManager();
 const applyTheme = (theme) => {
     document.documentElement.setAttribute('data-theme', theme);
     const btn = document.getElementById('theme-btn');
+    const btnMobile = document.getElementById('theme-btn-mobile');
+
+    const themeNames = {
+        'light': '☀️ Light Mode',
+        'dark': '🌙 Dark Mode',
+        'midnight': '🌌 Midnight',
+        'sunset': '🌅 Sunset',
+        'forest': '🌲 Forest'
+    };
+
+    const themeIcons = {
+        'light': '☀️',
+        'dark': '🌙',
+        'midnight': '🌌',
+        'sunset': '🌅',
+        'forest': '🌲'
+    };
+
     if (btn) {
-        const themeNames = {
-            'light': '☀️ Light Mode',
-            'dark': '🌙 Dark Mode',
-            'midnight': '🌌 Midnight',
-            'sunset': '🌅 Sunset',
-            'forest': '🌲 Forest'
-        };
         btn.textContent = themeNames[theme] || '🎨 Theme';
+    }
+
+    if (btnMobile) {
+        btnMobile.textContent = themeIcons[theme] || '🎨';
     }
 };
 
@@ -131,7 +146,7 @@ promptForAccount();
 updateGreeting();
 
 // Theme Picker Modal
-document.getElementById('theme-btn').addEventListener('click', () => {
+const openThemeModal = () => {
     const settings = store.getSettings();
     const currentTheme = settings.theme;
     const isDyslexic = settings.dyslexiaFont || false;
@@ -206,7 +221,13 @@ document.getElementById('theme-btn').addEventListener('click', () => {
         store.save('settings');
         applyAccessibility();
     });
-});
+};
+
+document.getElementById('theme-btn').addEventListener('click', openThemeModal);
+const mobileThemeBtn = document.getElementById('theme-btn-mobile');
+if (mobileThemeBtn) {
+    mobileThemeBtn.addEventListener('click', openThemeModal);
+}
 
 // Define Routes
 const routes = {
@@ -298,7 +319,7 @@ class CheckInManager {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', html);
-        
+
         const popup = document.getElementById(popupId);
         if (popup) {
             // Fade out after 2 seconds, then remove
@@ -320,7 +341,7 @@ window.checkInManager = checkInManager;
 setTimeout(() => {
     if (router && router.handleRoute) {
         const originalHandleRoute = router.handleRoute.bind(router);
-        router.handleRoute = async function() {
+        router.handleRoute = async function () {
             await originalHandleRoute();
             // Add ads after view renders (if not in study session)
             setTimeout(() => {
@@ -330,7 +351,7 @@ setTimeout(() => {
                     // Add new ads based on current route
                     const hash = window.location.hash.slice(1) || 'dashboard';
                     const route = hash.split('/')[0];
-                    
+
                     if (route === 'dashboard') {
                         adManager.insertDashboardAds();
                     }
