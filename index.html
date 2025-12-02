@@ -19,7 +19,7 @@
             Chart.defaults.plugins = Chart.defaults.plugins || {};
             Chart.defaults.plugins.legend = Chart.defaults.plugins.legend || {};
             Chart.defaults.plugins.tooltip = Chart.defaults.plugins.tooltip || {};
-            
+
             // Prevent Chart.js from trying to access localStorage/sessionStorage
             if (typeof Storage === 'undefined') {
                 // If storage is blocked, Chart.js will work without it
@@ -40,15 +40,24 @@
 
             <nav>
                 <ul class="nav-links">
-                    <li><a href="#dashboard" class="nav-link active">📊 Dashboard</a></li>
-                    <li><a href="#subjects" class="nav-link">📚 Subjects</a></li>
-                    <li><a href="#timetable" class="nav-link">📅 Timetable</a></li>
-                    <li><a href="#flashcards" class="nav-link">🎴 Flashcards</a></li>
-                    <li><a href="#pomodoro" class="nav-link">⏱️ Focus Timer</a></li>
-                    <li><a href="#analytics" class="nav-link">📈 Analytics</a></li>
-                    <li><a href="#countdowns" class="nav-link">⏳ Countdowns</a></li>
-                    <li><a href="#vision" class="nav-link">🎯 Vision Board</a></li>
-                    <li><a href="#achievements" class="nav-link">🏆 Achievements</a></li>
+                    <li><a href="#dashboard" class="nav-link active"><span class="nav-icon">📊</span> <span
+                                class="nav-text">Dashboard</span></a></li>
+                    <li><a href="#subjects" class="nav-link"><span class="nav-icon">📚</span> <span
+                                class="nav-text">Subjects</span></a></li>
+                    <li><a href="#timetable" class="nav-link"><span class="nav-icon">📅</span> <span
+                                class="nav-text">Timetable</span></a></li>
+                    <li><a href="#flashcards" class="nav-link"><span class="nav-icon">🎴</span> <span
+                                class="nav-text">Flashcards</span></a></li>
+                    <li><a href="#pomodoro" class="nav-link"><span class="nav-icon">⏱️</span> <span
+                                class="nav-text">Focus Timer</span></a></li>
+                    <li><a href="#analytics" class="nav-link"><span class="nav-icon">📈</span> <span
+                                class="nav-text">Analytics</span></a></li>
+                    <li><a href="#countdowns" class="nav-link"><span class="nav-icon">⏳</span> <span
+                                class="nav-text">Countdowns</span></a></li>
+                    <li><a href="#vision" class="nav-link"><span class="nav-icon">🎯</span> <span
+                                class="nav-text">Vision Board</span></a></li>
+                    <li><a href="#achievements" class="nav-link"><span class="nav-icon">🏆</span> <span
+                                class="nav-text">Achievements</span></a></li>
                 </ul>
             </nav>
 
@@ -64,6 +73,8 @@
                 <h2 id="page-title">Dashboard</h2>
                 <div class="user-profile">
                     <span id="greeting" class="text-muted" style="margin-right: 1rem;">Hello, Student!</span>
+                    <button id="theme-btn-mobile" class="btn btn-secondary"
+                        style="padding: 0.5rem; margin-right: 0.5rem; display: none;">🌙</button>
                     <div class="avatar-small">🎓</div>
                 </div>
             </header>
