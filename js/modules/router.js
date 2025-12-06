@@ -1,0 +1,50 @@
+class Router {
+    constructor(routes) {
+        this.routes = routes;
+        this.viewContainer = document.getElementById('app-view');
+        this.pageTitle = document.getElementById('page-title');
+        this.navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('hashchange', () => this.handleRoute());
+        this.handleRoute(); // Handle initial load
+    }
+
+    async handleRoute() {
+        try {
+            const hash = window.location.hash.slice(1) || 'dashboard';
+            const [route, id, action] = hash.split('/');
+
+            console.log(`Navigating to: ${route}`); // Debug log
+
+            const view = this.routes[route];
+
+            if (view) {
+                // Update Active Link
+                this.navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${route}`) {
+                        link.classList.add('active');
+                    }
+                });
+
+                // Update Title
+                this.pageTitle.textContent = route.charAt(0).toUpperCase() + route.slice(1);
+
+                // Render View
+                if (route === 'flashcards' && id) {
+                    // Handle Flashcard sub-routes
+                    await view.renderDeckView(this.viewContainer, id, action);
+                } else {
+                    await view.render(this.viewContainer);
+                }
+
+                if (view.afterRender) await view.afterRender();
+            } else {
+                console.warn(`Route not found: ${route}`);
+            }
+        } catch (error) {
+            console.error('Router Error:', error);
+            this.viewContainer.innerHTML = `<div class="error-state"><h3>Something went wrong</h3><p>${error.message}</p></div>`;
+        }
+    }
+}
