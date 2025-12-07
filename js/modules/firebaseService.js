@@ -629,6 +629,20 @@ class FirebaseService {
         }
     }
 
+    // Get sessions for a user
+    async getSessions(userId) {
+        await this.initialize();
+        try {
+            const sessionsSnapshot = await this.db.collection('users').doc(userId)
+                .collection('sessions').orderBy('timestamp', 'desc').limit(500).get();
+            const sessions = sessionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return { success: true, data: sessions };
+        } catch (error) {
+            console.error('Error fetching sessions:', error);
+            return { success: false, message: this.getErrorMessage(error), data: [] };
+        }
+    }
+
     // Get achievements for a user
     async getAchievements(userId) {
         await this.initialize();
