@@ -24,7 +24,7 @@ class Router {
             const hash = window.location.hash.slice(1) || 'dashboard';
             const [route, id, action] = hash.split('/');
 
-            console.log(`Navigating to: ${route}`); // Debug log
+            console.log(`Navigating to: ${route}`, 'Available routes:', Object.keys(this.routes)); // Debug log
 
             const view = this.routes[route];
 
@@ -32,13 +32,20 @@ class Router {
                 // Update Active Link
                 this.navLinks.forEach(link => {
                     link.classList.remove('active');
-                    if (link.getAttribute('href') === `#${route}`) {
+                    const href = link.getAttribute('href');
+                    if (href === `#${route}` || href === `#${route}/`) {
                         link.classList.add('active');
                     }
                 });
 
-                // Update Title
-                this.pageTitle.textContent = route.charAt(0).toUpperCase() + route.slice(1);
+                // Update Title - handle camelCase routes
+                const title = route
+                    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                    .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+                    .trim();
+                if (this.pageTitle) {
+                    this.pageTitle.textContent = title;
+                }
 
                 // Render View
                 if (route === 'flashcards' && id) {

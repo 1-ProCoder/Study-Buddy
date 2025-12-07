@@ -207,10 +207,7 @@ const initializeMainApp = async () => {
     }
     
     // Initialize Router
-    if (!router) {
-        router = new Router(routes);
-        voiceManager.router = router;
-    }
+    initializeRouter();
 };
 
 // Prompt for account login/creation (DEPRECATED - kept for backward compatibility)
@@ -420,12 +417,24 @@ const routes = {
     'account': new AccountSettingsView(store, authManager)
 };
 
-// Initialize Router (only if authenticated)
+// Initialize Router
 let router = null;
+
+// Function to initialize router
+const initializeRouter = () => {
+    if (!router && typeof Router !== 'undefined') {
+        router = new Router(routes);
+        // Connect Router to Voice Manager
+        if (voiceManager) {
+            voiceManager.router = router;
+        }
+    }
+    return router;
+};
+
+// Initialize router after authentication check
 if (authManager.isAuthenticated()) {
-    router = new Router(routes);
-    // Connect Router to Voice Manager
-    voiceManager.router = router;
+    initializeRouter();
 }
 
 // Voice Command Button Listener

@@ -11,14 +11,19 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" 
+            onerror="console.warn('Chart.js failed to load - charts will be disabled'); window.Chart = null;"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
         // Configure Chart.js to not use storage (prevents tracking prevention errors)
-        if (typeof Chart !== 'undefined') {
+        // Handle Chart.js loading gracefully
+        if (typeof Chart === 'undefined') {
+            console.warn('Chart.js not loaded - charts will be disabled. This is normal if tracking prevention is enabled.');
+            window.Chart = null;
+        } else {
             // Disable any storage-related features
             Chart.defaults.plugins = Chart.defaults.plugins || {};
             Chart.defaults.plugins.legend = Chart.defaults.plugins.legend || {};
@@ -26,7 +31,6 @@
 
             // Prevent Chart.js from trying to access localStorage/sessionStorage
             if (typeof Storage === 'undefined') {
-                // If storage is blocked, Chart.js will work without it
                 console.log('Storage access blocked - Chart.js will work without persistence');
             }
         }
