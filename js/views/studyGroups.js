@@ -416,17 +416,7 @@ class StudyGroupsView {
                         <div id="share-resource-preview" style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-body); border-radius: 8px;"></div>
                         <div class="form-group">
                             <label>Select Group(s)</label>
-                            <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;">
-                                ${groups.map(group => `
-                                    <label style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: var(--bg-body); border-radius: 8px; cursor: pointer; border: 2px solid var(--border); transition: all 0.2s;">
-                                        <input type="checkbox" value="${group.id}" class="group-checkbox" style="width: auto;">
-                                        <div style="flex: 1;">
-                                            <div style="font-weight: 600;">${group.name}</div>
-                                            <div style="font-size: 0.85rem; color: var(--text-muted);">${group.subject || 'General'}</div>
-                                        </div>
-                                    </label>
-                                `).join('')}
-                            </div>
+                            <div id="share-groups-list" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;"></div>
                         </div>
                     </div>
                     <div class="modal-footer">
