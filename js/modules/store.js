@@ -2,6 +2,17 @@ class Store {
     constructor() {
         this.themes = ['light', 'dark', 'midnight', 'sunset', 'forest'];
         this.accountManager = new AccountManager();
+        
+        // Function to load data from localStorage
+        const loadFromLocalStorage = (key, defaultValue) => {
+            try {
+                const data = localStorage.getItem(`studybuddy_${key}`);
+                return data ? JSON.parse(data) : defaultValue;
+            } catch (e) {
+                console.warn(`Error loading ${key} from localStorage:`, e);
+                return defaultValue;
+            }
+        };
 
         // Try to load from authenticated user first
         let currentAccount = null;
@@ -13,42 +24,9 @@ class Store {
         }
 
         if (currentAccount) {
-            // Load from existing account
+            // Load from existing account but prefer localStorage data if available
             this.state = {
-                user: currentAccount.user,
-                subjects: currentAccount.subjects || [],
-                timetable: currentAccount.timetable || null,
-                settings: currentAccount.settings || {
-                    theme: 'light',
-                    soundEnabled: true,
-                    fontSize: 'medium'
-                },
-                flashcards: currentAccount.flashcards || [],
-                sessions: currentAccount.sessions || [],
-                papers: currentAccount.papers || [],
-                achievements: currentAccount.achievements || [],
-                countdowns: currentAccount.countdowns || [],
-                visionBoard: currentAccount.visionBoard || [],
-                dailyChallenges: currentAccount.dailyChallenges || this.generateDailyChallenges(),
-                badges: currentAccount.badges || [],
-                checkin_today: currentAccount.checkin_today || false,
-                last_checkin: currentAccount.last_checkin || null,
-                timetableCompletions: currentAccount.timetableCompletions || {},
-                last_timetable_check: currentAccount.last_timetable_check || null,
-                daily_xp_claimed: currentAccount.daily_xp_claimed || false,
-                last_daily_xp: currentAccount.last_daily_xp || null,
-                dailyActivities: currentAccount.dailyActivities || {}
-            };
-
-            // Check streak on init
-            this.checkStreak();
-            this.checkDailyChallengesReset();
-            this.checkDailyCheckIn();
-            this.syncToSharedDatabase(); // Initial sync
-        } else {
-            // No account - will be created when user enters name
-            this.state = {
-                user: {
+                user: loadFromLocalStorage('user', currentAccount.user || {
                     name: 'Student',
                     avatar: '🎓',
                     level: 1,
@@ -56,69 +34,130 @@ class Store {
                     streak: 0,
                     lastLogin: new Date().toISOString().split('T')[0],
                     userId: null
-                },
-                subjects: [],
-                timetable: null,
-                settings: {
+                }),
+                subjects: loadFromLocalStorage('subjects', currentAccount.subjects || []),
+                timetable: loadFromLocalStorage('timetable', currentAccount.timetable || null),
+                settings: loadFromLocalStorage('settings', currentAccount.settings || {
                     theme: 'light',
                     soundEnabled: true,
                     fontSize: 'medium'
-                },
-                flashcards: [],
-                sessions: [],
-                papers: [],
-                achievements: [],
-                countdowns: [],
-                visionBoard: [],
-                dailyChallenges: this.generateDailyChallenges(),
-                badges: [],
-                checkin_today: false,
-                last_checkin: null,
-                timetableCompletions: {},
-                last_timetable_check: null,
-                daily_xp_claimed: false,
-                last_daily_xp: null,
-                dailyActivities: {}
+                }),
+                flashcards: loadFromLocalStorage('flashcards', currentAccount.flashcards || []),
+                sessions: loadFromLocalStorage('sessions', currentAccount.sessions || []),
+                papers: loadFromLocalStorage('papers', currentAccount.papers || []),
+                achievements: loadFromLocalStorage('achievements', currentAccount.achievements || []),
+                countdowns: loadFromLocalStorage('countdowns', currentAccount.countdowns || []),
+                visionBoard: loadFromLocalStorage('visionBoard', currentAccount.visionBoard || []),
+                dailyChallenges: loadFromLocalStorage('dailyChallenges', currentAccount.dailyChallenges || this.generateDailyChallenges()),
+                badges: loadFromLocalStorage('badges', currentAccount.badges || []),
+                checkin_today: loadFromLocalStorage('checkin_today', currentAccount.checkin_today || false),
+                last_checkin: loadFromLocalStorage('last_checkin', currentAccount.last_checkin || null),
+                timetableCompletions: loadFromLocalStorage('timetableCompletions', currentAccount.timetableCompletions || {}),
+                last_timetable_check: loadFromLocalStorage('last_timetable_check', currentAccount.last_timetable_check || null),
+                daily_xp_claimed: loadFromLocalStorage('daily_xp_claimed', currentAccount.daily_xp_claimed || false),
+                last_daily_xp: loadFromLocalStorage('last_daily_xp', currentAccount.last_daily_xp || null),
+                dailyActivities: loadFromLocalStorage('dailyActivities', currentAccount.dailyActivities || {})
+            };
+        } else {
+            // No account - try to load from localStorage or create new
+            this.state = {
+                user: loadFromLocalStorage('user', {
+                    name: 'Student',
+                    avatar: '🎓',
+                    level: 1,
+                    xp: 0,
+                    streak: 0,
+                    lastLogin: new Date().toISOString().split('T')[0],
+                    userId: null
+                }),
+                subjects: loadFromLocalStorage('subjects', []),
+                timetable: loadFromLocalStorage('timetable', null),
+                settings: loadFromLocalStorage('settings', {
+                    theme: 'light',
+                    soundEnabled: true,
+                    fontSize: 'medium'
+                }),
+                flashcards: loadFromLocalStorage('flashcards', []),
+                sessions: loadFromLocalStorage('sessions', []),
+                papers: loadFromLocalStorage('papers', []),
+                achievements: loadFromLocalStorage('achievements', []),
+                countdowns: loadFromLocalStorage('countdowns', []),
+                visionBoard: loadFromLocalStorage('visionBoard', []),
+                dailyChallenges: loadFromLocalStorage('dailyChallenges', this.generateDailyChallenges()),
+                badges: loadFromLocalStorage('badges', []),
+                checkin_today: loadFromLocalStorage('checkin_today', false),
+                last_checkin: loadFromLocalStorage('last_checkin', null),
+                timetableCompletions: loadFromLocalStorage('timetableCompletions', {}),
+                last_timetable_check: loadFromLocalStorage('last_timetable_check', null),
+                daily_xp_claimed: loadFromLocalStorage('daily_xp_claimed', false),
+                last_daily_xp: loadFromLocalStorage('last_daily_xp', null),
+                dailyActivities: loadFromLocalStorage('dailyActivities', {})
             };
         }
+
+        // Initialize any missing state properties
+        if (!this.state.user) this.state.user = { name: 'Student', avatar: '🎓', level: 1, xp: 0, streak: 0, lastLogin: new Date().toISOString().split('T')[0], userId: null };
+        if (!this.state.subjects) this.state.subjects = [];
+        if (!this.state.settings) this.state.settings = { theme: 'light', soundEnabled: true, fontSize: 'medium' };
+        if (!this.state.sessions) this.state.sessions = [];
+        if (!this.state.achievements) this.state.achievements = [];
+        if (!this.state.dailyChallenges || this.state.dailyChallenges.length === 0) {
+            this.state.dailyChallenges = this.generateDailyChallenges();
+        }
+
+        // Check streak on init
+        this.checkStreak();
+        this.checkDailyChallengesReset();
+        this.checkDailyCheckIn();
+        this.syncToSharedDatabase(); // Initial sync
     }
 
     save(key) {
-        // Save to authenticated account or current account
-        let currentAccount = null;
-        
-        // Try auth manager first
-        if (typeof authManager !== 'undefined' && authManager.isAuthenticated()) {
-            currentAccount = authManager.getCurrentUser();
-            if (currentAccount && this.state[key] !== undefined) {
-                try {
-                    // Deep clone to avoid reference issues
-                    const dataToSave = JSON.parse(JSON.stringify(this.state[key]));
-                    // Update account data
-                    const accounts = authManager.getAllAccounts();
-                    if (accounts[currentAccount.userId]) {
-                        accounts[currentAccount.userId][key] = dataToSave;
-                        authManager.saveAccounts(accounts);
+        try {
+            // Always save to localStorage as a fallback
+            if (this.state[key] !== undefined) {
+                const dataToSave = JSON.parse(JSON.stringify(this.state[key]));
+                localStorage.setItem(`studybuddy_${key}`, JSON.stringify(dataToSave));
+            }
+            
+            // Save to authenticated account if available
+            if (typeof authManager !== 'undefined' && authManager.isAuthenticated()) {
+                const currentAccount = authManager.getCurrentUser();
+                if (currentAccount && this.state[key] !== undefined) {
+                    try {
+                        // Deep clone to avoid reference issues
+                        const dataToSave = JSON.parse(JSON.stringify(this.state[key]));
+                        // Update account data
+                        const accounts = authManager.getAllAccounts();
+                        if (accounts[currentAccount.userId]) {
+                            accounts[currentAccount.userId][key] = dataToSave;
+                            authManager.saveAccounts(accounts);
+                        }
+                    } catch (e) {
+                        console.warn(`Error saving ${key} to auth account:`, e);
                     }
-                } catch (e) {
-                    console.warn(`Error saving ${key}:`, e);
+                }
+            } else {
+                // Fallback to account manager for backward compatibility
+                const currentAccount = this.accountManager.getCurrentAccount();
+                if (currentAccount && this.state[key] !== undefined) {
+                    try {
+                        // Deep clone to avoid reference issues
+                        const dataToSave = JSON.parse(JSON.stringify(this.state[key]));
+                        // Update only the specific key to avoid overwriting other data
+                        const updateData = {};
+                        updateData[key] = dataToSave;
+                        this.accountManager.updateCurrentAccount(updateData);
+                    } catch (e) {
+                        console.warn(`Error saving ${key} to account manager:`, e);
+                    }
                 }
             }
-        } else {
-            // Fallback to account manager for backward compatibility
-            currentAccount = this.accountManager.getCurrentAccount();
-            if (currentAccount && this.state[key] !== undefined) {
-                try {
-                    // Deep clone to avoid reference issues
-                    const dataToSave = JSON.parse(JSON.stringify(this.state[key]));
-                    // Update only the specific key to avoid overwriting other data
-                    const updateData = {};
-                    updateData[key] = dataToSave;
-                    this.accountManager.updateCurrentAccount(updateData);
-                } catch (e) {
-                    console.warn(`Error saving ${key}:`, e);
-                }
-            }
+            
+            // Sync to shared database for leaderboards
+            this.syncToSharedDatabase();
+        } catch (e) {
+            console.error('Error in save operation:', e);
         }
     }
 
