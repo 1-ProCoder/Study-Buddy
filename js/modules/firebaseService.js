@@ -345,9 +345,9 @@ class FirebaseService {
         this.initialize().then(() => {
             this.db.collection('leaderboards').doc('global')
                 .onSnapshot((snapshot) => {
-                    if (snapshot.exists()) {
+                    if (snapshot.exists) {  // For DocumentSnapshot, use exists without ()
                         const data = snapshot.data();
-                        const users = Object.keys(data).map(userId => ({
+                        const users = Object.keys(data || {}).map(userId => ({
                             userId: userId,
                             ...data[userId]
                         }));
@@ -357,6 +357,7 @@ class FirebaseService {
                     }
                 }, (error) => {
                     console.error('Leaderboard listener error:', error);
+                    callback([]);
                 });
         });
     }
@@ -542,12 +543,65 @@ class FirebaseService {
     async getTimetable(userId) {
         await this.initialize();
         try {
-            const timetableSnapshot = await this.db.collection('users').doc(userId).collection('timetable').get();
-            const timetable = timetableSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            return { success: true, data: timetable };
+            const timetableDoc = await this.retryOperation(() => 
+                this.db.collection('users').doc(userId).collection('timetable').doc('schedule').get()
+            );
+            if (timetableDoc.exists) {
+                return { success: true, data: timetableDoc.data() };
+            }
+            return { success: true, data: null };
         } catch (error) {
             console.error('Error fetching timetable:', error);
-            return { success: false, message: this.getErrorMessage(error), data: [] };
+            return { success: false, message: this.getUserFriendlyErrorMessage(error), data: null };
+        }
+    }
+
+    // Get vision board items
+    async getVisionBoard(userId) {
+        await this.initialize();
+        try {
+            const visionDoc = await this.retryOperation(() => 
+                this.db.collection('users').doc(userId)
+                    .collection('visionBoard').doc('items').get()
+            );
+            if (visionDoc.exists) {
+                return { success: true, data: visionDoc.data().items || [] };
+            }
+            return { success: true, data: [] };
+        } catch (error) {
+            console.error('Error fetching vision board:', error);
+            return { success: false, message: this.getUserFriendlyErrorMessage(error), data: [] };
+        }
+    }
+
+    // Save vision board
+    async saveVisionBoard(userId, items) {
+        await this.initialize();
+        try {
+            await this.retryOperation(() => 
+                this.db.collection('users').doc(userId)
+                    .collection('visionBoard').doc('items').set({ items }, { merge: true })
+            );
+            return { success: true };
+        } catch (error) {
+            console.error('Save vision board error:', error);
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
+        }
+    }
+
+    // Get papers/past exams
+    async getPapers(userId) {
+        await this.initialize();
+        try {
+            const papersSnapshot = await this.retryOperation(() => 
+                this.db.collection('users').doc(userId)
+                    .collection('papers').get()
+            );
+            const papers = papersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return { success: true, data: papers };
+        } catch (error) {
+            console.error('Error fetching papers:', error);
+            return { success: false, message: this.getUserFriendlyErrorMessage(error), data: [] };
         }
     }
 

@@ -62,6 +62,19 @@ class TimetableView {
     }
 
     renderTimetable(timetable) {
+        // Add null check before using Object.entries
+        if (!timetable || typeof timetable !== 'object' || !timetable.schedule) {
+            console.warn('No timetable data available or invalid format');
+            return `
+                <div class="card center-content">
+                    <h3>No Timetable Found</h3>
+                    <p>Please create a timetable using the form above.</p>
+                </div>
+            `;
+        }
+
+        const schedule = timetable.schedule || {};
+        
         return `
             <div class="timetable-results animate-fade-in">
                 <div class="header-actions">
@@ -80,7 +93,7 @@ class TimetableView {
                 </div>
 
                 <div class="timetable-grid">
-                    ${Object.entries(timetable.schedule).map(([day, slots]) => `
+                    ${Object.entries(schedule).map(([day, slots]) => `
                         <div class="card day-card">
                             <h4 class="day-title">${day} <small class="text-muted">· ${slots.length} ${slots.length===1? 'slot':'slots'}</small></h4>
                             <div class="day-slots">

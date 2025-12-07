@@ -90,7 +90,13 @@ class FirebaseStore {
             // Load vision board
             const visionResult = await this.firebaseService.getVisionBoard(userId);
             if (visionResult.success) {
-                this.state.visionBoard = visionResult.data;
+                this.state.visionBoard = visionResult.data || [];
+            }
+
+            // Load papers
+            const papersResult = await this.firebaseService.getPapers(userId);
+            if (papersResult.success) {
+                this.state.papers = papersResult.data || [];
             }
 
             // Load sessions
@@ -234,6 +240,64 @@ class FirebaseStore {
 
     getVisionBoard() {
         return this.state.visionBoard || [];
+    }
+
+    getPapers() {
+        return this.state.papers || [];
+    }
+
+    getTimetable() {
+        return this.state.timetable || null;
+    }
+
+    getCurrentUserId() {
+        if (!this.authManager || !this.authManager.isAuthenticated()) {
+            return null;
+        }
+        const user = this.authManager.getCurrentUser();
+        return user ? user.userId : null;
+    }
+
+    // Async methods that fetch from Firestore
+    async loadVisionBoard() {
+        const userId = this.getCurrentUserId();
+        if (!userId) return [];
+        
+        const result = await this.firebaseService.getVisionBoard(userId);
+        if (result.success) {
+            this.state.visionBoard = result.data;
+        }
+        return result.success ? result.data : [];
+    }
+
+    async saveVisionBoard(items) {
+        const userId = this.getCurrentUserId();
+        if (!userId) return { success: false };
+        
+        this.state.visionBoard = items;
+        return await this.firebaseService.saveVisionBoard(userId, items);
+    }
+
+    async loadPapers() {
+        const userId = this.getCurrentUserId();
+        if (!userId) return [];
+        
+        const result = await this.firebaseService.getPapers(userId);
+        if (result.success) {
+            this.state.papers = result.data;
+        }
+        return result.success ? result.data : [];
+    }
+
+    async loadTimetable() {
+        const userId = this.getCurrentUserId();
+        if (!userId) return null;
+        
+        const result = await this.firebaseService.getTimetable(userId);
+        if (result.success) {
+            this.state.timetable = result.data;
+        }
+        return result.success ? result.data : null;
     }
 
     // Update methods

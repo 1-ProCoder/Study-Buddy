@@ -122,6 +122,23 @@ class FirebaseAuthManager {
         // Not applicable with Firebase - returns empty object
         return {};
     }
+
+    // Check password strength
+    checkPasswordStrength(password) {
+        if (!password) {
+            return { strength: 0, level: 'empty', feedback: ['Password is required'] };
+        }
+        if (password.length < 6) {
+            return { strength: 1, level: 'weak', feedback: ['Password must be at least 6 characters'] };
+        }
+        if (password.length < 8) {
+            return { strength: 2, level: 'fair', feedback: ['Password is acceptable'] };
+        }
+        if (password.length >= 8 && /[A-Z]/.test(password) && /[0-9]/.test(password)) {
+            return { strength: 4, level: 'strong', feedback: [] };
+        }
+        return { strength: 3, level: 'good', feedback: [] };
+    }
 }
 
 // Export for use in other files
