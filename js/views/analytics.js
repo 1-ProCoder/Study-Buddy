@@ -4,6 +4,9 @@ class AnalyticsView {
     }
 
     async render(container) {
+        // Show loading state
+        container.innerHTML = '<div style="text-align: center; padding: 3rem;"><div class="spinner" style="border: 4px solid var(--border); border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto;"></div><p style="margin-top: 1rem; color: var(--text-muted);">Loading analytics...</p></div>';
+        
         const sessions = this.store.getSessions() || [];
         const subjects = this.store.getSubjects() || [];
         const user = this.store.getUser();
@@ -177,19 +180,51 @@ class AnalyticsView {
     }
 
     async afterRender() {
-        // Initialize Charts
-        if (typeof Chart === 'undefined') {
-            console.error('Chart.js not loaded');
+        const container = document.getElementById('app-view');
+        
+        // Check if Chart.js is available
+        if (typeof Chart === 'undefined' || Chart === null) {
+            console.warn('Chart.js not loaded - using table view');
+            // Get data for table view
+            const sessions = this.store.getSessions() || [];
+            const subjects = this.store.getSubjects() || [];
+            const last7Days = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - 6 + i);
+                return d.toISOString().split('T')[0];
+            });
+            const studyTimeData = last7Days.map(date => {
+                return Math.round(sessions
+                    .filter(s => s.timestamp && s.timestamp.startsWith(date))
+                    .reduce((acc, s) => acc + (s.duration || 0), 0));
+            });
+            const subjectMap = {};
+            subjects.forEach(sub => {
+                subjectMap[sub.id] = { name: sub.name, duration: 0 };
+            });
+            sessions.forEach(sess => {
+                if (sess.subjectId && subjectMap[sess.subjectId]) {
+                    subjectMap[sess.subjectId].duration += Math.round(sess.duration || 0);
+                }
+            });
+            const topSubjects = Object.values(subjectMap).sort((a, b) => b.duration - a.duration).slice(0, 5);
+            const totalStudyTime = Math.round(sessions.reduce((acc, s) => acc + (s.duration || 0), 0));
+            this.renderDataTables(container, studyTimeData, subjectMap, topSubjects, totalStudyTime);
             return;
         }
 
         // Configure Chart.js to not use storage (fixes tracking prevention issues)
-        if (Chart.defaults) {
-            Chart.defaults.plugins.legend.display = true;
-            // Disable any storage usage
-            if (Chart.plugins) {
-                Chart.plugins.register = Chart.plugins.register || function() {};
+        try {
+            if (Chart.defaults) {
+                Chart.defaults.plugins.legend.display = true;
+                // Disable any storage usage
+                if (Chart.plugins) {
+                    Chart.plugins.register = Chart.plugins.register || function() {};
+                }
             }
+        } catch (e) {
+            console.warn('Chart.js configuration error:', e);
+            return;
         }
 
         const sessions = this.store.getSessions() || [];
@@ -229,6 +264,10 @@ class AnalyticsView {
                 ctxTime.parentElement.innerHTML = '<p class="text-muted" style="text-align: center; padding: 40px;">No study sessions logged yet. Start a Pomodoro session to see your data here.</p>';
             } else {
                 try {
+                    if (typeof Chart === 'undefined' || Chart === null) {
+                        console.warn('Chart.js not available for time chart');
+                        return;
+                    }
                     new Chart(ctxTime.getContext('2d'), {
                         type: 'bar',
                         data: {
@@ -303,6 +342,10 @@ class AnalyticsView {
                 const chartLabels = realSubjectLabels;
                 const chartValues = realSubjectValues;
                 try {
+                    if (typeof Chart === 'undefined' || Chart === null) {
+                        console.warn('Chart.js not available for subject chart');
+                        return;
+                    }
                     new Chart(ctxSub.getContext('2d'), {
                         type: 'doughnut',
                         data: {
@@ -438,6 +481,10 @@ class AnalyticsView {
                 const chartColors = subjectTimeData.map(item => item.color);
 
                 try {
+                    if (typeof Chart === 'undefined' || Chart === null) {
+                        console.warn('Chart.js not available for subject time chart');
+                        return;
+                    }
                     new Chart(ctxSubjectTime.getContext('2d'), {
                         type: 'bar',
                         data: {
@@ -512,5 +559,78 @@ class AnalyticsView {
                 }
             }
         }
+    }
+
+    // Fallback: Render data in table format when Chart.js is not available
+    renderDataTables(container, studyTimeData, subjectMap, topSubjects, totalStudyTime) {
+        const hours = Math.floor(totalStudyTime / 60);
+        const minutes = totalStudyTime % 60;
+        
+        // Find the analytics container or create a new one
+        let analyticsContainer = container.querySelector('.analytics-container');
+        if (!analyticsContainer) {
+            analyticsContainer = container;
+        }
+        
+        const tableHTML = `
+            <div class="card" style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem; color: var(--text-muted);">📅 Study Time - Last 7 Days</h3>
+                <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
+                    Charts are disabled (tracking prevention). Data shown in tables below.
+                </p>
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-body);">
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--border);">Date</th>
+                            <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid var(--border);">Minutes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${studyTimeData.map((minutes, index) => {
+                            const date = new Date();
+                            date.setDate(date.getDate() - 6 + index);
+                            const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                            return `
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td style="padding: 0.75rem;">${dateStr}</td>
+                                    <td style="padding: 0.75rem; text-align: right; font-weight: 600;">${minutes}m</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card" style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem;">📚 Top Subjects by Study Time</h3>
+                ${topSubjects.length > 0 ? `
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: var(--bg-body);">
+                                <th style="padding: 0.75rem; text-align: left; border-bottom: 2px solid var(--border);">Subject</th>
+                                <th style="padding: 0.75rem; text-align: right; border-bottom: 2px solid var(--border);">Study Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${topSubjects.map(subject => {
+                                const hours = Math.floor(subject.duration / 60);
+                                const mins = subject.duration % 60;
+                                return `
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <td style="padding: 0.75rem;">${subject.name}</td>
+                                        <td style="padding: 0.75rem; text-align: right; font-weight: 600;">${hours}h ${mins}m</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                ` : `
+                    <p class="text-muted" style="text-align: center; padding: 2rem;">No subject data available yet. Start studying to see your progress!</p>
+                `}
+            </div>
+        `;
+        
+        // Append tables to the container
+        analyticsContainer.insertAdjacentHTML('beforeend', tableHTML);
     }
 }

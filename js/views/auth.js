@@ -233,14 +233,27 @@ class AuthView {
             const password = passwordInput.value;
             const confirm = confirmInput.value;
 
-            if (password !== confirm) {
-                errorDiv.textContent = 'Passwords do not match';
+            // Validate username
+            if (!username || username.length < 3) {
+                errorDiv.textContent = 'Username must be at least 3 characters long';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                errorDiv.textContent = 'Username can only contain letters, numbers, and underscores';
                 errorDiv.style.display = 'block';
                 return;
             }
 
-            if (password.length < 6) {
-                errorDiv.textContent = 'Password must be at least 6 characters';
+            // Validate password
+            if (!password || password.length < 6) {
+                errorDiv.textContent = 'Password must be at least 6 characters long';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (password !== confirm) {
+                errorDiv.textContent = 'Passwords do not match';
                 errorDiv.style.display = 'block';
                 return;
             }
@@ -251,11 +264,33 @@ class AuthView {
             submitBtn.textContent = 'Creating Account...';
             submitBtn.disabled = true;
 
-            const result = await this.authManager.signUp(username, password, selectedAvatar);
-            if (result.success) {
-                this.onAuthSuccess();
-            } else {
-                errorDiv.textContent = result.message;
+            try {
+                const result = await this.authManager.signUp(username, password, selectedAvatar);
+                if (result.success) {
+                    // Show success message
+                    submitBtn.textContent = '✓ Account Created!';
+                    submitBtn.style.background = 'var(--success)';
+                    errorDiv.style.display = 'none';
+                    
+                    // Show welcome message
+                    const welcomeMsg = document.createElement('div');
+                    welcomeMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--primary); color: white; padding: 2rem; border-radius: 12px; z-index: 10001; box-shadow: 0 4px 12px rgba(0,0,0,0.3); text-align: center;';
+                    welcomeMsg.innerHTML = '<div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div><h3 style="margin-bottom: 0.5rem;">Welcome to StudyBuddy!</h3><p>Your account has been created successfully.</p>';
+                    document.body.appendChild(welcomeMsg);
+                    
+                    setTimeout(() => {
+                        welcomeMsg.remove();
+                        this.onAuthSuccess();
+                    }, 2000);
+                } else {
+                    errorDiv.textContent = result.message;
+                    errorDiv.style.display = 'block';
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Sign up error:', error);
+                errorDiv.textContent = 'An unexpected error occurred. Please try again.';
                 errorDiv.style.display = 'block';
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;
@@ -281,17 +316,42 @@ class AuthView {
             const password = document.getElementById('login-password').value;
             const rememberDevice = document.getElementById('remember-device').checked;
 
+            // Validate inputs
+            if (!username) {
+                errorDiv.textContent = 'Please enter your username';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            if (!password) {
+                errorDiv.textContent = 'Please enter your password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
             // Show loading state
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
             submitBtn.textContent = 'Logging in...';
             submitBtn.disabled = true;
 
-            const result = await this.authManager.login(username, password, rememberDevice);
-            if (result.success) {
-                this.onAuthSuccess();
-            } else {
-                errorDiv.textContent = result.message;
+            try {
+                const result = await this.authManager.login(username, password, rememberDevice);
+                if (result.success) {
+                    // Show success message briefly
+                    submitBtn.textContent = '✓ Success!';
+                    submitBtn.style.background = 'var(--success)';
+                    setTimeout(() => {
+                        this.onAuthSuccess();
+                    }, 500);
+                } else {
+                    errorDiv.textContent = result.message;
+                    errorDiv.style.display = 'block';
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorDiv.textContent = 'An unexpected error occurred. Please try again.';
                 errorDiv.style.display = 'block';
                 submitBtn.textContent = originalText;
                 submitBtn.disabled = false;

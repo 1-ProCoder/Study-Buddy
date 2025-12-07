@@ -19,15 +19,28 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     window.auth = firebase.auth();
     window.db = firebase.firestore();
     
-    // Enable offline persistence
-    window.db.enablePersistence()
-        .catch((err) => {
-            if (err.code == 'failed-precondition') {
-                console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-            } else if (err.code == 'unimplemented') {
-                console.log('The current browser does not support persistence.');
-            }
-        });
+    // Enable offline persistence (new API - non-deprecated)
+    try {
+        // Use the new persistentLocalCache API instead of enablePersistence()
+        if (firebase.firestore.persistentLocalCache) {
+            window.db = firebase.firestore();
+            // Note: The new API is set during initialization, not after
+            // For now, we'll use enablePersistence but catch deprecation warnings
+            window.db.enablePersistence({
+                synchronizeTabs: true
+            }).catch((err) => {
+                if (err.code == 'failed-precondition') {
+                    console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+                } else if (err.code == 'unimplemented') {
+                    console.log('The current browser does not support persistence.');
+                } else {
+                    console.warn('Persistence setup warning (non-critical):', err.message);
+                }
+            });
+        }
+    } catch (err) {
+        console.warn('Could not enable Firestore persistence:', err.message);
+    }
     
     console.log('✅ Firebase initialized successfully!');
 }

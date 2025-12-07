@@ -24,17 +24,27 @@ class FirebaseService {
                 this.auth = firebase.auth();
                 this.db = firebase.firestore();
                 
-                // Enable offline persistence
+                // Enable offline persistence (with better error handling)
                 try {
+                    // Note: enablePersistence() is deprecated but still works
+                    // The new API (persistentLocalCache) requires different initialization
+                    // For now, we'll use enablePersistence with better error handling
                     await this.db.enablePersistence({
                         synchronizeTabs: true
+                    }).catch((err) => {
+                        // Handle persistence errors gracefully - app still works without it
+                        if (err.code === 'failed-precondition') {
+                            console.warn('Firebase persistence: Multiple tabs open, persistence disabled');
+                        } else if (err.code === 'unimplemented') {
+                            console.warn('Firebase persistence: Not supported in this browser');
+                        } else {
+                            console.warn('Firebase persistence: Could not enable (non-critical):', err.message);
+                        }
+                        // Don't throw - app works fine without persistence
                     });
                 } catch (err) {
-                    if (err.code === 'failed-precondition') {
-                        console.warn('Firebase persistence failed: Multiple tabs open');
-                    } else if (err.code === 'unimplemented') {
-                        console.warn('Firebase persistence not supported in this browser');
-                    }
+                    // Catch any unexpected errors
+                    console.warn('Firebase persistence setup error (non-critical):', err.message);
                 }
             } else {
                 throw new Error('Firebase SDK not loaded');
@@ -56,60 +66,98 @@ class FirebaseService {
     // Auth Methods
     async signUp(username, password, displayName, avatar = '🎓') {
         await this.initialize();
-        const email = `${username}@studybuddy.app`;
+        
+        // Validate inputs
+        const trimmedUsername = username.trim();
+        if (!trimmedUsername || trimmedUsername.length < 3) {
+            return { success: false, message: 'Username must be at least 3 characters long' };
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+            return { success: false, message: 'Username can only contain letters, numbers, and underscores' };
+        }
+        if (!password || password.length < 6) {
+            return { success: false, message: 'Password must be at least 6 characters long' };
+        }
+        
+        const email = `${trimmedUsername}@studybuddy.app`;
         
         try {
             const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
             const userId = userCredential.user.uid;
 
             // Create user profile in Firestore
-            await this.db.collection('users').doc(userId).set({
-                username: username,
-                displayName: displayName || username,
-                avatar: avatar,
-                joinedDate: firebase.firestore.FieldValue.serverTimestamp(),
-                lastActive: firebase.firestore.FieldValue.serverTimestamp(),
-                totalXP: 0,
-                studyTime: 0,
-                studyStreak: 0,
-                studySessions: 0,
-                flashcardsCompleted: 0
-            });
+            try {
+                await this.db.collection('users').doc(userId).set({
+                    username: trimmedUsername,
+                    displayName: displayName || trimmedUsername,
+                    avatar: avatar,
+                    joinedDate: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+                    totalXP: 0,
+                    studyTime: 0,
+                    studyStreak: 0,
+                    studySessions: 0,
+                    flashcardsCompleted: 0
+                });
 
-            // Initialize leaderboard entry
-            await this.updateLeaderboard(userId, {
-                username: username,
-                avatar: avatar,
-                studyTime: 0,
-                studyStreak: 0,
-                studySessions: 0,
-                flashcardsCompleted: 0,
-                totalXP: 0
-            });
+                // Initialize leaderboard entry
+                try {
+                    await this.updateLeaderboard(userId, {
+                        username: trimmedUsername,
+                        avatar: avatar,
+                        studyTime: 0,
+                        studyStreak: 0,
+                        studySessions: 0,
+                        flashcardsCompleted: 0,
+                        totalXP: 0
+                    });
+                } catch (leaderboardError) {
+                    console.warn('Could not initialize leaderboard entry:', leaderboardError);
+                    // Non-critical, continue
+                }
+            } catch (firestoreError) {
+                console.error('Error creating user profile:', firestoreError);
+                // User is created but profile failed - still return success but log error
+                // The user can still use the app
+            }
 
             return { success: true, userId: userId, user: userCredential.user };
         } catch (error) {
             console.error('Sign up error:', error);
-            return { success: false, message: this.getErrorMessage(error) };
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
         }
     }
 
     async login(username, password) {
         await this.initialize();
-        const email = `${username}@studybuddy.app`;
+        
+        // Validate inputs
+        if (!username || !username.trim()) {
+            return { success: false, message: 'Please enter your username' };
+        }
+        if (!password || !password.trim()) {
+            return { success: false, message: 'Please enter your password' };
+        }
+        
+        const email = `${username.trim()}@studybuddy.app`;
         
         try {
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             
             // Update last active
-            await this.db.collection('users').doc(userCredential.user.uid).update({
-                lastActive: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            try {
+                await this.db.collection('users').doc(userCredential.user.uid).update({
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (updateError) {
+                console.warn('Could not update last active:', updateError);
+                // Non-critical error, continue with login
+            }
 
             return { success: true, user: userCredential.user };
         } catch (error) {
             console.error('Login error:', error);
-            return { success: false, message: this.getErrorMessage(error) };
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
         }
     }
 
@@ -146,32 +194,59 @@ class FirebaseService {
         }
     }
 
+    // Helper method for retrying Firestore operations
+    async retryOperation(operation, maxRetries = 3, delay = 1000) {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                return await operation();
+            } catch (error) {
+                const isLastAttempt = i === maxRetries - 1;
+                const isRetryable = error.code === 'unavailable' || 
+                                   error.code === 'deadline-exceeded' ||
+                                   error.message?.includes('network') ||
+                                   error.message?.includes('fetch');
+                
+                if (isLastAttempt || !isRetryable) {
+                    throw error;
+                }
+                
+                console.warn(`Retry attempt ${i + 1}/${maxRetries} after ${delay}ms`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Exponential backoff
+            }
+        }
+    }
+
     // Firestore Methods - User Data
     async getUserData(userId) {
         await this.initialize();
         try {
-            const doc = await this.db.collection('users').doc(userId).get();
+            const doc = await this.retryOperation(() => 
+                this.db.collection('users').doc(userId).get()
+            );
             if (doc.exists) {
                 return { success: true, data: doc.data() };
             }
             return { success: false, message: 'User not found' };
         } catch (error) {
             console.error('Get user data error:', error);
-            return { success: false, message: this.getErrorMessage(error) };
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
         }
     }
 
     async updateUserData(userId, data) {
         await this.initialize();
         try {
-            await this.db.collection('users').doc(userId).update({
-                ...data,
-                lastActive: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            await this.retryOperation(() => 
+                this.db.collection('users').doc(userId).update({
+                    ...data,
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                })
+            );
             return { success: true };
         } catch (error) {
             console.error('Update user data error:', error);
-            return { success: false, message: this.getErrorMessage(error) };
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
         }
     }
 
@@ -179,15 +254,17 @@ class FirebaseService {
     async getFlashcards(userId) {
         await this.initialize();
         try {
-            const snapshot = await this.db.collection('users').doc(userId)
-                .collection('flashcards').get();
+            const snapshot = await this.retryOperation(() => 
+                this.db.collection('users').doc(userId)
+                    .collection('flashcards').get()
+            );
             return {
                 success: true,
                 data: snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
             };
         } catch (error) {
             console.error('Get flashcards error:', error);
-            return { success: false, message: this.getErrorMessage(error) };
+            return { success: false, message: this.getUserFriendlyErrorMessage(error), data: [] };
         }
     }
 
@@ -195,16 +272,20 @@ class FirebaseService {
         await this.initialize();
         try {
             if (flashcard.id) {
-                await this.db.collection('users').doc(userId)
-                    .collection('flashcards').doc(flashcard.id).set(flashcard, { merge: true });
+                await this.retryOperation(() => 
+                    this.db.collection('users').doc(userId)
+                        .collection('flashcards').doc(flashcard.id).set(flashcard, { merge: true })
+                );
             } else {
-                await this.db.collection('users').doc(userId)
-                    .collection('flashcards').add(flashcard);
+                await this.retryOperation(() => 
+                    this.db.collection('users').doc(userId)
+                        .collection('flashcards').add(flashcard)
+                );
             }
             return { success: true };
         } catch (error) {
             console.error('Save flashcard error:', error);
-            return { success: false, message: this.getErrorMessage(error) };
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
         }
     }
 
@@ -224,16 +305,19 @@ class FirebaseService {
     async updateLeaderboard(userId, stats) {
         await this.initialize();
         try {
-            await this.db.collection('leaderboards').doc('global').set({
-                [userId]: {
-                    ...stats,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                }
-            }, { merge: true });
+            await this.retryOperation(() => 
+                this.db.collection('leaderboards').doc('global').set({
+                    [userId]: {
+                        ...stats,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    }
+                }, { merge: true })
+            );
             return { success: true };
         } catch (error) {
             console.error('Update leaderboard error:', error);
-            return { success: false, message: this.getErrorMessage(error) };
+            // Leaderboard updates are non-critical, log but don't fail
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
         }
     }
 
@@ -625,6 +709,43 @@ class FirebaseService {
             'unavailable': 'Service temporarily unavailable'
         };
         return errorMessages[error.code] || error.message || 'An error occurred';
+    }
+
+    getUserFriendlyErrorMessage(error) {
+        const errorMessages = {
+            'auth/email-already-in-use': 'This username is already taken. Please choose a different one.',
+            'auth/invalid-email': 'Invalid username format. Username must be at least 3 characters.',
+            'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
+            'auth/user-not-found': 'No account found with this username. Please sign up first.',
+            'auth/wrong-password': 'Incorrect password. Please try again.',
+            'auth/invalid-credential': 'Invalid username or password. Please check your credentials.',
+            'auth/invalid-login-credentials': 'Invalid username or password. If you don\'t have an account, please sign up first.',
+            'auth/network-request-failed': 'Network error. Please check your internet connection and try again.',
+            'auth/too-many-requests': 'Too many failed login attempts. Please try again later.',
+            'permission-denied': 'Permission denied. Please contact support if this persists.',
+            'unavailable': 'Service temporarily unavailable. Please try again in a moment.',
+            'auth/operation-not-allowed': 'This operation is not allowed. Please contact support.'
+        };
+        
+        // Check for specific error codes
+        if (error.code && errorMessages[error.code]) {
+            return errorMessages[error.code];
+        }
+        
+        // Check error message for common patterns
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('user-not-found') || errorMessage.includes('invalid-credential')) {
+            return 'No account found with this username. Please sign up first.';
+        }
+        if (errorMessage.includes('wrong-password') || errorMessage.includes('invalid-password')) {
+            return 'Incorrect password. Please try again.';
+        }
+        if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+            return 'Network error. Please check your internet connection and try again.';
+        }
+        
+        // Default user-friendly message
+        return 'An error occurred. Please try again. If the problem persists, contact support.';
     }
 }
 
