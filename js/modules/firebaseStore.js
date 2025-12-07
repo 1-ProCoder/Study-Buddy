@@ -12,12 +12,19 @@ class FirebaseStore {
             countdowns: [],
             visionBoard: [],
             badges: [],
+            // Daily / streak tracking (needed by views)
+            checkin_today: false,
+            last_checkin: null,
+            daily_xp_claimed: false,
+            last_daily_xp: null,
+            // Settings
             settings: {
                 theme: 'light',
                 soundEnabled: true,
                 fontSize: 'medium'
             }
         };
+
         this.loading = false;
     }
 
@@ -503,6 +510,116 @@ class FirebaseStore {
         return [];
     }
 
+    // ---------------- Gamification & Daily Rewards ----------------
+    // Badge templates (static)
+    getAllBadges() {
+        return [
+            { id: 'starter', name: 'Starter', icon: '🌱', requirement: 'Complete first session', type: 'milestone' },
+            { id: 'study_1h', name: 'Getting Started', icon: '📚', requirement: '1 hour of study', type: 'hours', target: 1 },
+            { id: 'study_10h', name: 'Studious', icon: '🤓', requirement: '10 hours of study', type: 'hours', target: 10 },
+            { id: 'study_50h', name: 'Scholar', icon: '🎓', requirement: '50 hours of study', type: 'hours', target: 50 },
+            { id: 'study_100h', name: 'Master', icon: '🧙', requirement: '100 hours of study', type: 'hours', target: 100 },
+            { id: 'xp_500', name: 'Rising Star', icon: '⭐', requirement: '500 XP earned', type: 'xp', target: 500 },
+            { id: 'xp_2000', name: 'Legendary', icon: '🌟', requirement: '2000 XP earned', type: 'xp', target: 2000 },
+            { id: 'streak_7', name: 'On Fire', icon: '🔥', requirement: '7 day streak', type: 'streak', target: 7 },
+            { id: 'streak_30', name: 'Unstoppable', icon: '💪', requirement: '30 day streak', type: 'streak', target: 30 },
+            { id: 'subject_master', name: 'Subject Master', icon: '🏆', requirement: '10 hours in one subject', type: 'subject', target: 10 }
+        ];
+    }
+
+    getBadges() {
+        return this.state.badges || [];
+    }
+
+    async unlockBadge(badgeId) {
+        if (!this.getBadges().find(b => b.id === badgeId)) {
+            const template = this.getAllBadges().find(b => b.id === badgeId);
+            if (template) {
+                this.state.badges.push({
+                    id: badgeId,
+                    name: template.name,
+                    icon: template.icon,
+                    unlockedAt: new Date().toISOString()
+                });
+                await this.save('badges');
+                return true;
+            }
+        }
+        return false;
+    }
+
+    checkBadgeProgress() {
+        const totalHours = (this.state.sessions.reduce((a, s) => a + s.duration, 0) / 60);
+        // Hour-based
+        if (totalHours >= 1) this.unlockBadge('study_1h');
+        if (totalHours >= 10) this.unlockBadge('study_10h');
+        if (totalHours >= 50) this.unlockBadge('study_50h');
+        if (totalHours >= 100) this.unlockBadge('study_100h');
+        // XP-based
+        if (this.state.user.xp >= 500) this.unlockBadge('xp_500');
+        if (this.state.user.xp >= 2000) this.unlockBadge('xp_2000');
+        // Streak
+        if (this.state.user.streak >= 7) this.unlockBadge('streak_7');
+        if (this.state.user.streak >= 30) this.unlockBadge('streak_30');
+    }
+
+    getBadgeProgress(badgeId) {
+        const badge = this.getAllBadges().find(b => b.id === badgeId);
+        if (!badge) return null;
+        const unlocked = !!this.state.badges.find(b => b.id === badgeId);
+        let progress = 0;
+        if (badge.type === 'hours') {
+            progress = Math.floor((this.state.sessions.reduce((a, s) => a + s.duration, 0) / 60) * 100 / badge.target);
+        } else if (badge.type === 'xp') {
+            progress = Math.floor((this.state.user.xp * 100) / badge.target);
+        } else if (badge.type === 'streak') {
+            progress = Math.floor((this.state.user.streak * 100) / badge.target);
+        }
+        return { isUnlocked: unlocked, progress: Math.min(progress, 100), target: badge.target };
+    }
+
+    // ---------------- Daily Check-in & XP ----------------
+    checkDailyCheckIn() {
+        const today = new Date().toISOString().split('T')[0];
+        if (this.state.last_checkin !== today) {
+            this.state.checkin_today = false;
+        }
+        if (this.state.last_daily_xp !== today) {
+            this.state.daily_xp_claimed = false;
+        }
+    }
+
+    completeDailyCheckIn() {
+        const today = new Date().toISOString().split('T')[0];
+        if (!this.state.checkin_today) {
+            this.state.checkin_today = true;
+            this.state.last_checkin = today;
+            this.addXP(25);
+            this.save('checkin_today');
+            this.save('last_checkin');
+            return true;
+        }
+        return false;
+    }
+
+    claimDailyXP() {
+        const today = new Date().toISOString().split('T')[0];
+        if (!this.state.daily_xp_claimed) {
+            this.state.daily_xp_claimed = true;
+            this.state.last_daily_xp = today;
+            this.addXP(10);
+            this.save('daily_xp_claimed');
+            this.save('last_daily_xp');
+            return true;
+        }
+        return false;
+    }
+
+    canClaimDailyXP() {
+        return !this.state.daily_xp_claimed;
+    }
+
+    // ---------------- Existing compatibility section ----------------
     // Additional methods for compatibility
     checkAchievements() {
         // Achievement checking logic
