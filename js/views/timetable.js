@@ -57,7 +57,11 @@ class TimetableView {
             }
         }
 
-        if (container) container.innerHTML = html;
+        if (container) {
+            container.innerHTML = html;
+            // Ensure event listeners (including Generate Timetable) are wired every time we render
+            await this.afterRender();
+        }
         return html;
     }
 
@@ -262,7 +266,10 @@ class TimetableView {
     }
 
     showTimetableCheckIn() {
-        if (!this.store.getTimetable() || !this.store.shouldShowTimetableCheckIn()) {
+        const hasMethod = typeof this.store.shouldShowTimetableCheckIn === 'function';
+        const shouldShow = hasMethod ? this.store.shouldShowTimetableCheckIn() : false;
+
+        if (!this.store.getTimetable() || !shouldShow) {
             return;
         }
 

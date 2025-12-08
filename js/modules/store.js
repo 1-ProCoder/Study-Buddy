@@ -512,7 +512,8 @@ class Store {
                 if (c.current >= c.target) {
                     c.current = c.target;
                     c.completed = true;
-                    this.addXP(c.xp);
+                    // Use a per-challenge XP type so each challenge can only reward once per day
+                    this.addXP(c.xp, `challenge_${c.id}`);
                     updated = true;
                 }
             }
@@ -593,7 +594,7 @@ class Store {
         if (!this.state.checkin_today) {
             this.state.checkin_today = true;
             this.state.last_checkin = today;
-            this.addXP(25); // Daily check-in bonus
+            this.addXP(25, 'daily_checkin'); // Daily check-in bonus (once per day)
             this.save('checkin_today');
             this.save('last_checkin');
             return true;
@@ -606,7 +607,7 @@ class Store {
         if (!this.state.daily_xp_claimed) {
             this.state.daily_xp_claimed = true;
             this.state.last_daily_xp = today;
-            this.addXP(10); // Free daily XP reward
+            this.addXP(10, 'daily_claim'); // Free daily XP reward (once per day)
             this.save('daily_xp_claimed');
             this.save('last_daily_xp');
             return true;
@@ -653,7 +654,8 @@ class Store {
         this.save('timetable_completions');
 
         if (completed) {
-            this.addXP(50); // 50 XP for completing a day's schedule
+            // Timetable completion reward, once per day
+            this.addXP(50, 'timetable_completion');
             return true;
         }
         return false;

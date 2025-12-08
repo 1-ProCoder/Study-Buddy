@@ -271,10 +271,16 @@ class FirebaseService {
     async saveFlashcard(userId, flashcard) {
         await this.initialize();
         try {
-            if (flashcard.id) {
+            // Ensure we always use a string document ID for Firestore
+            let docId = flashcard.id;
+            if (docId != null && typeof docId !== 'string') {
+                docId = String(docId);
+            }
+
+            if (docId) {
                 await this.retryOperation(() => 
                     this.db.collection('users').doc(userId)
-                        .collection('flashcards').doc(flashcard.id).set(flashcard, { merge: true })
+                        .collection('flashcards').doc(docId).set({ ...flashcard, id: docId }, { merge: true })
                 );
             } else {
                 await this.retryOperation(() => 
@@ -553,6 +559,21 @@ class FirebaseService {
         } catch (error) {
             console.error('Error fetching timetable:', error);
             return { success: false, message: this.getUserFriendlyErrorMessage(error), data: null };
+        }
+    }
+
+    // Save full timetable schedule used by FirebaseStore
+    async saveTimetable(userId, timetable) {
+        await this.initialize();
+        try {
+            await this.retryOperation(() =>
+                this.db.collection('users').doc(userId)
+                    .collection('timetable').doc('schedule').set(timetable, { merge: true })
+            );
+            return { success: true };
+        } catch (error) {
+            console.error('Save timetable error:', error);
+            return { success: false, message: this.getUserFriendlyErrorMessage(error) };
         }
     }
 

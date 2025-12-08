@@ -487,7 +487,8 @@ class CheckInManager {
         `;
         document.body.insertAdjacentHTML('beforeend', html);
         document.querySelector(`[data-checkin-yes="${type}"]`).addEventListener('click', () => {
-            this.store.addXP(config.rewardXP);
+            // Use a distinct XP type per check-in so each can only reward once per day
+            this.store.addXP(config.rewardXP, `checkin_${type}`);
             this.store.recordDailyActivity(type, 1);
             document.getElementById(`checkin-${type}-overlay`).remove();
             this.showRewardPopup(config.emoji, config.rewardText);
