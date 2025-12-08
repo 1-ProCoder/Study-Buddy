@@ -28,10 +28,20 @@ class CountdownsView {
                         </div>
                     ` : ''}
                     ${countdowns.map(countdown => {
-            const targetDate = new Date(countdown.date);
-            const timeRemaining = this.calculateTimeRemaining(now, targetDate);
-            const isPast = targetDate < now;
+            const rawDate = countdown.date;
+            const targetDate = rawDate ? new Date(rawDate) : null;
+            const isValidDate = targetDate && !isNaN(targetDate.getTime());
+            const timeRemaining = isValidDate ? this.calculateTimeRemaining(now, targetDate) : { days: 0, hours: 0, minutes: 0 };
+            const isPast = isValidDate ? targetDate < now : false;
             const daysPercentage = Math.max(0, Math.min(100, (timeRemaining.days / 30) * 100));
+
+            const shortDateLabel = isValidDate
+                ? targetDate.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+                : 'Invalid date';
+
+            const longDateLabel = isValidDate
+                ? targetDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                : 'Invalid date';
 
             return `
                             <div class="countdown-card-premium ${isPast ? 'past' : ''}" style="animation: fadeIn 0.6s ease-out">
@@ -45,12 +55,12 @@ class CountdownsView {
                                     </button>
                                 </div>
                                 
-                                <p class="countdown-date">${new Date(countdown.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                                <p class="countdown-date">${shortDateLabel}</p>
                                 
                                 ${isPast ? `
                                     <div class="countdown-past-state">
                                         <div class="past-badge">✓ Event Passed</div>
-                                        <p>Completed on ${new Date(countdown.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                        <p>Completed on ${longDateLabel}</p>
                                     </div>
                                 ` : `
                                     <div class="countdown-time-display">
@@ -159,7 +169,7 @@ class CountdownsView {
         backdrop?.addEventListener('click', closeModal);
 
         // Save countdown
-        document.getElementById('save-countdown')?.addEventListener('click', () => {
+        document.getElementById('save-countdown')?.addEventListener('click', async () => {
             const title = document.getElementById('countdown-title').value.trim();
             const type = document.getElementById('countdown-type').value;
             const date = document.getElementById('countdown-date').value;
@@ -174,12 +184,21 @@ class CountdownsView {
                     return;
                 }
                 
-                this.store.addCountdown({
+                const countdownObj = {
                     id: Date.now().toString(),
                     title,
                     type,
                     date: selectedDate.toISOString()
-                });
+                };
+
+                // Support both local Store (addCountdown) and FirebaseStore (saveCountdown)
+                if (typeof this.store.addCountdown === 'function') {
+                    this.store.addCountdown(countdownObj);
+                } else if (typeof this.store.saveCountdown === 'function') {
+                    await this.store.saveCountdown(countdownObj);
+                } else {
+                    console.error('No countdown save method available on store');
+                }
 
                 modal.remove();
                 this.render().then(html => {
