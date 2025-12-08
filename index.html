@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Buddy AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- Chart.js - Optional, with graceful fallback -->
+    <script>
+        // Try to load Chart.js, but don't fail if it's blocked
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+            script.onerror = function() {
+                console.warn('Chart.js failed to load - charts will be disabled. This is normal if tracking prevention is enabled.');
+                window.Chart = undefined;
+            };
+            script.onload = function() {
+                // Configure Chart.js to not use storage (prevents tracking prevention errors)
+                if (typeof Chart !== 'undefined' && Chart !== null) {
+                    try {
+                        Chart.defaults.plugins = Chart.defaults.plugins || {};
+                        Chart.defaults.plugins.legend = Chart.defaults.plugins.legend || {};
+                        Chart.defaults.plugins.tooltip = Chart.defaults.plugins.tooltip || {};
+                        console.log('Chart.js loaded successfully');
+                    } catch (e) {
+                        console.warn('Chart.js configuration error:', e);
+                        window.Chart = undefined;
+                    }
+                }
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+    ">
+        <div style="
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top: 5px solid #fff;
+            animation: spin 1s linear infinite;
+        "></div>
+        <h2 style="color: #fff; margin-top: 20px; font-family: 'Inter', sans-serif; font-weight: 500;">Loading StudyBuddy...</h2>
+        <p style="color: rgba(255, 255, 255, 0.8); margin-top: 10px; font-family: 'Inter', sans-serif;">Preparing your study space</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span style="font-size: 1.5rem;"><img src="https://api.iconify.design/mdi:school.svg?color=%236366f1" alt="StudyBuddy" class="brand-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🎓</span></span>
+                <span>StudyBuddy</span>
+            </div>
+
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#dashboard" class="nav-link active"><span class="nav-icon"><img src="https://api.iconify.design/mdi:view-dashboard.svg?color=%236366f1" alt="Dashboard" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📊</span></span> <span
+                                class="nav-text">Dashboard</span></a></li>
+                    <li><a href="#subjects" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:book-open-variant.svg?color=%236366f1" alt="Subjects" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📚</span></span> <span
+                                class="nav-text">Subjects</span></a></li>
+                    <li><a href="#timetable" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:calendar.svg?color=%236366f1" alt="Timetable" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📅</span></span> <span
+                                class="nav-text">Timetable</span></a></li>
+                    <li><a href="#flashcards" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:cards.svg?color=%236366f1" alt="Flashcards" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🎴</span></span> <span
+                                class="nav-text">Flashcards</span></a></li>
+                    <li><a href="#pomodoro" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:timer.svg?color=%236366f1" alt="Focus Timer" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⏱️</span></span> <span
+                                class="nav-text">Focus Timer</span></a></li>
+                    <li><a href="#analytics" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:chart-line.svg?color=%236366f1" alt="Analytics" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">📈</span></span> <span
+                                class="nav-text">Analytics</span></a></li>
+                    <li><a href="#countdowns" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:hourglass.svg?color=%236366f1" alt="Countdowns" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⏳</span></span> <span
+                                class="nav-text">Countdowns</span></a></li>
+                    <li><a href="#vision" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:target.svg?color=%236366f1" alt="Vision Board" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🎯</span></span> <span
+                                class="nav-text">Vision Board</span></a></li>
+                    <li><a href="#achievements" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:trophy.svg?color=%236366f1" alt="Achievements" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🏆</span></span> <span
+                                class="nav-text">Achievements</span></a></li>
+                    <li><a href="#studyGroups" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:account-group.svg?color=%236366f1" alt="Study Groups" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">👥</span></span> <span
+                                class="nav-text">Study Groups</span></a></li>
+                    <li><a href="#leaderboards" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:trophy-variant.svg?color=%236366f1" alt="Leaderboards" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">🏆</span></span> <span
+                                class="nav-text">Leaderboards</span></a></li>
+                    <li><a href="#account" class="nav-link"><span class="nav-icon"><img src="https://api.iconify.design/mdi:account-cog.svg?color=%236366f1" alt="Account" class="icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"><span style="display:none;">⚙️</span></span> <span
+                                class="nav-text">Account</span></a></li>
+                </ul>
+            </nav>
+
+            <div style="margin-top: auto;">
+                <button id="theme-btn" class="btn btn-secondary btn-block">🌙 Dark Mode</button>
+                <button id="voice-command-btn" class="btn btn-secondary btn-block" style="margin-top: 0.5rem;">🎙️ Voice
+                    Command</button>
+                <button id="voice-help-btn" class="btn btn-secondary btn-block" style="margin-top: 0.5rem; font-size: 0.85rem;">❓ Voice Help</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <h2 id="page-title">Dashboard</h2>
+                <div class="user-profile">
+                    <span id="greeting" class="text-muted" style="margin-right: 1rem;">Hello, Student!</span>
+                    <button id="voice-help-btn-mobile" class="btn btn-secondary"
+                        style="padding: 0.5rem; margin-right: 0.5rem; display: none; font-size: 0.9rem;">❓</button>
+                    <button id="theme-btn-mobile" class="btn btn-secondary"
+                        style="padding: 0.5rem; margin-right: 0.5rem; display: none;">🌙</button>
+                    <div class="avatar-small" id="user-avatar" style="cursor: pointer;" onclick="window.location.hash = '#account'">🎓</div>
+                </div>
+            </header>
+
+            <!-- View Container -->
+            <div id="app-view" class="view-container">
+                <!-- Views will be rendered here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/modules/utils.js"></script>
+    <script src="js/modules/accounts.js"></script>
+    <!-- Firebase Modules -->
+    <script src="js/modules/firebaseConfig.js"></script>
+    <script src="js/modules/firebaseService.js"></script>
+    <script src="js/modules/firebaseAuth.js"></script>
+    <script src="js/modules/firebaseStore.js"></script>
+    <script src="js/modules/firebaseLeaderboardManager.js"></script>
+    <!-- Legacy modules (for migration) -->
+    <script src="js/modules/auth.js"></script>
+    <script src="js/modules/sharedStorage.js"></script>
+    <script src="js/modules/leaderboardManager.js"></script>
+    <script src="js/modules/store.js"></script>
+    <script src="js/modules/seed.js"></script>
+    <script src="js/modules/adManager.js"></script>
+    <script src="js/modules/voice.js"></script>
+    <script src="js/modules/router.js"></script>
+    <script src="js/views/dashboard.js"></script>
+    <script src="js/views/subjects.js"></script>
+    <script src="js/views/timetable.js"></script>
+    <script src="js/views/flashcards.js"></script>
+    <script src="js/views/pomodoro.js"></script>
+    <script src="js/views/analytics.js"></script>
+    <script src="js/views/countdowns.js"></script>
+    <script src="js/views/community.js"></script>
+    <script src="js/views/vision.js"></script>
+    <script src="js/views/studyGroups.js"></script>
+    <script src="js/views/leaderboards.js"></script>
+    <script src="js/views/auth.js"></script>
+    <script src="js/views/accountSettings.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>
