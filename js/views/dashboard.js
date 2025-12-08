@@ -35,49 +35,47 @@ class DashboardView {
 
         container.innerHTML = `
             <div class="dashboard-container animate-fade-in">
-                <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div class="dashboard-header">
                     <div>
-                        <h2 style="font-weight: 800; color: var(--text-main); font-size: 2.5rem; margin-bottom: 0.5rem;">Good ${this.getTimeOfDay()}, ${user.name.split(' ')[0]}</h2>
-                        <p class="text-muted" style="font-size: 1.1rem;">Ready to level up your knowledge?</p>
+                        <h2 class="dashboard-greeting">Good ${this.getTimeOfDay()}, ${user.name.split(' ')[0]}</h2>
+                        <p class="text-muted">Ready to level up your knowledge?</p>
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">Level ${user.level}</div>
-                        <div style="width: 150px; height: 8px; background: var(--border); border-radius: 10px; overflow: hidden; margin-top: 5px;">
-                            <div style="width: ${xpPercent}%; height: 100%; background: var(--primary); transition: width 0.5s ease;"></div>
+                    <div class="xp-level-container">
+                        <div class="level-badge">Level ${user.level}</div>
+                        <div class="xp-bar">
+                            <div class="xp-bar-fill" style="width: ${xpPercent}%;"></div>
                         </div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">${user.xp} / ${xpNeeded} XP</div>
+                        <div class="xp-text">${user.xp} / ${xpNeeded} XP</div>
                     </div>
                 </div>
 
                 <!-- Motivational Quote -->
-                <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #4338ca) 100%); color: white; padding: 1.5rem; border: none;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="font-size: 2.5rem;">💡</div>
-                        <div>
-                            <p style="font-size: 1.1rem; font-style: italic; margin-bottom: 0.5rem; color: rgba(255,255,255,0.95);">"${randomQuote.text}"</p>
-                            <p style="font-size: 0.9rem; color: rgba(255,255,255,0.8); margin: 0;">— ${randomQuote.author}</p>
-                        </div>
+                <div class="motivational-quote-card">
+                    <div class="quote-icon">💡</div>
+                    <div>
+                        <p class="quote-text">"${randomQuote.text}"</p>
+                        <p class="quote-author">— ${randomQuote.author}</p>
                     </div>
                 </div>
 
                 <!-- Gamification Stats Row -->
-                <div class="grid-3" style="margin-bottom: 2rem;">
-                    <div class="card stat-card">
-                        <div style="font-size: 2.5rem;">🔥</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🔥</div>
                         <div>
                             <p class="stat-label">Daily Streak</p>
-                            <p class="stat-value">${user.streak} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 400;">days</span></p>
+                            <p class="stat-value">${user.streak} <span class="stat-unit">days</span></p>
                         </div>
                     </div>
-                    <div class="card stat-card">
-                        <div style="font-size: 2.5rem;">⏱️</div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏱️</div>
                         <div>
                             <p class="stat-label">Total Focus</p>
                             <p class="stat-value">${hours}h ${minutes}m</p>
                         </div>
                     </div>
-                    <div class="card stat-card">
-                        <div style="font-size: 2.5rem;">🏆</div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🏆</div>
                         <div>
                             <p class="stat-label">Achievements</p>
                             <p class="stat-value">${this.store.getAchievements().length}</p>
@@ -85,23 +83,19 @@ class DashboardView {
                     </div>
                 </div>
 
-                <div class="grid-2">
+                <div class="content-grid">
                     <!-- Daily Challenges -->
                     <div class="card">
-                        <h4 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-                            🎯 Daily Challenges
-                        </h4>
-                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <h4 class="card-title">🎯 Daily Challenges</h4>
+                        <div class="challenge-list">
                             ${challenges.map(c => `
-                                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--bg-body); border-radius: var(--radius); border: 1px solid ${c.completed ? 'var(--success)' : 'var(--border)'}; opacity: ${c.completed ? 0.7 : 1};">
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; border: 2px solid ${c.completed ? 'var(--success)' : 'var(--text-muted)'}; display: flex; align-items: center; justify-content: center; color: var(--success);">
-                                        ${c.completed ? '✓' : ''}
+                                <div class="challenge-item ${c.completed ? 'completed' : ''}">
+                                    <div class="challenge-checkbox">${c.completed ? '✓' : ''}</div>
+                                    <div class="challenge-details">
+                                        <div class="challenge-text">${c.text}</div>
+                                        <div class="challenge-reward">Reward: ${c.xp} XP</div>
                                     </div>
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 600; ${c.completed ? 'text-decoration: line-through;' : ''}">${c.text}</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);">Reward: ${c.xp} XP</div>
-                                    </div>
-                                    ${!c.completed ? `<div style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">${Math.round(c.current || 0)}/${c.target}</div>` : ''}
+                                    ${!c.completed ? `<div class="challenge-progress">${Math.round(c.current || 0)}/${c.target}</div>` : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -109,137 +103,106 @@ class DashboardView {
 
                     <!-- Quick Actions -->
                     <div class="card">
-                        <h4 style="margin-bottom: 1.5rem;">🚀 Quick Actions</h4>
-                        <div style="display: grid; gap: 1rem;">
-                            <button class="btn btn-primary btn-block" onclick="window.location.hash='#pomodoro'" style="justify-content: space-between; padding: 1rem;">
-                                <span>⏱️ Start Focus Session</span>
-                                <span>→</span>
+                        <h4 class="card-title">🚀 Quick Actions</h4>
+                        <div class="quick-actions-grid">
+                            <button class="quick-action-btn" onclick="window.location.hash='#pomodoro'">
+                                <span class="quick-action-icon">⏱️</span>
+                                <span>Start Focus Session</span>
                             </button>
-                            <button class="btn btn-secondary btn-block" onclick="window.location.hash='#flashcards'" style="justify-content: space-between; padding: 1rem;">
-                                <span>🎴 Review Flashcards</span>
-                                <span>→</span>
+                            <button class="quick-action-btn" onclick="window.location.hash='#flashcards'">
+                                <span class="quick-action-icon">🎴</span>
+                                <span>Review Flashcards</span>
                             </button>
-                            <button class="btn btn-secondary btn-block" onclick="window.location.hash='#subjects'" style="justify-content: space-between; padding: 1rem;">
-                                <span>📚 Manage Subjects</span>
-                                <span>→</span>
+                            <button class="quick-action-btn" onclick="window.location.hash='#subjects'">
+                                <span class="quick-action-icon">📚</span>
+                                <span>Manage Subjects</span>
                             </button>
-                            <button class="btn btn-secondary btn-block" onclick="window.location.hash='#analytics'" style="justify-content: space-between; padding: 1rem;">
-                                <span>📊 View Analytics</span>
-                                <span>→</span>
+                            <button class="quick-action-btn" onclick="window.location.hash='#analytics'">
+                                <span class="quick-action-icon">📊</span>
+                                <span>View Analytics</span>
                             </button>
-                            <button class="btn btn-secondary btn-block" id="brain-break-btn" style="justify-content: space-between; padding: 1rem; border-color: var(--success); color: var(--success);">
-                                <span>🧘 Brain Break</span>
-                                <span>→</span>
+                            <button class="quick-action-btn" id="brain-break-btn">
+                                <span class="quick-action-icon">🧘</span>
+                                <span>Brain Break</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
                 ${subjects.length === 0 ? `
-                    <div class="card" style="margin-top: 2rem; text-align: center; padding: 2rem;">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
-                        <h3 style="margin-bottom: 1rem;">Get Started with Your Learning Journey!</h3>
-                        <p class="text-muted" style="margin-bottom: 1.5rem;">Add your first subject to begin tracking your progress and unlock the full power of StudyBuddy.</p>
+                    <div class="card getting-started-card">
+                        <div class="getting-started-icon">🚀</div>
+                        <h3 class="getting-started-title">Get Started with Your Learning Journey!</h3>
+                        <p class="text-muted">Add your first subject to begin tracking your progress and unlock the full power of StudyBuddy.</p>
                         <button class="btn btn-primary" onclick="window.location.hash='#subjects'">Add Your First Subject</button>
                     </div>
                 ` : ''}
                 
                 <!-- Past Paper Results -->
                 <div class="card" style="margin-top: 2rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                        <h3 style="margin: 0;">📝 Past Paper Results</h3>
-                        <span style="font-size: 0.9rem; color: var(--text-muted); background: var(--bg-body); padding: 0.25rem 0.75rem; border-radius: 20px;">${papers.length} Records</span>
+                    <div class="card-header">
+                        <h3 class="card-title">📝 Past Paper Results</h3>
+                        <span class="record-count">${papers.length} Records</span>
                     </div>
                     
                     <!-- Add New Result Form -->
-                    <div style="background: var(--bg-body); padding: 1.5rem; border-radius: var(--radius); margin-bottom: 2rem; border: 1px solid var(--border);">
-                        <h4 style="margin-bottom: 1rem; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Add New Result</h4>
-                        <form id="past-paper-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
-                            <div>
-                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Subject</label>
-                                <select id="pp-subject" required style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg-card); color: var(--text-main); transition: border-color 0.2s;">
+                    <div class="add-result-form">
+                        <h4 class="form-title">Add New Result</h4>
+                        <form id="past-paper-form" class="past-paper-form">
+                            <div class="form-group">
+                                <label for="pp-subject">Subject</label>
+                                <select id="pp-subject" required>
                                     <option value="">Select Subject...</option>
                                     ${subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
                                 </select>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Year</label>
-                                <input type="number" id="pp-year" placeholder="e.g. 2024" required style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg-card); color: var(--text-main);">
+                            <div class="form-group">
+                                <label for="pp-year">Year</label>
+                                <input type="number" id="pp-year" placeholder="e.g. 2024" required>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Paper Type</label>
-                                <input type="text" id="pp-type" placeholder="e.g. Unit 1 / Paper 2" required style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg-card); color: var(--text-main);">
+                            <div class="form-group">
+                                <label for="pp-type">Paper Type</label>
+                                <input type="text" id="pp-type" placeholder="e.g. Unit 1 / Paper 2" required>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Grade / Score</label>
-                                <input type="text" id="pp-grade" placeholder="e.g. A* or 95%" required style="width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg-card); color: var(--text-main);">
+                            <div class="form-group">
+                                <label for="pp-grade">Grade / Score</label>
+                                <input type="text" id="pp-grade" placeholder="e.g. A* or 95%" required>
                             </div>
-                            <button type="submit" class="btn btn-primary" style="height: 48px; margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <button type="submit" class="btn btn-primary">
                                 <span>💾</span> Save Result
                             </button>
                         </form>
                     </div>
 
                     <!-- Results List -->
-                    <div style="margin-top: 1rem;">
+                    <div class="results-list">
                         ${papers.length === 0 ? `
-                            <div style="text-align: center; padding: 3rem; background: var(--bg-body); border-radius: var(--radius); border: 2px dashed var(--border);">
-                                <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; animation: float 3s ease-in-out infinite;">📝</div>
-                                <h4 style="margin-bottom: 0.5rem;">No results recorded yet</h4>
-                                <p style="font-size: 0.9rem; color: var(--text-muted);">Add your first past paper result above to start tracking your academic progress!</p>
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📝</div>
+                                <h4 class="empty-state-title">No results recorded yet</h4>
+                                <p class="text-muted">Add your first past paper result above to start tracking your academic progress!</p>
                             </div>
                         ` : `
-                            <div style="display: grid; gap: 0.75rem;">
+                            <div class="paper-items-grid">
                                 ${papers.sort((a, b) => new Date(b.date) - new Date(a.date)).map(p => `
-                                    <div class="paper-item" style="display: flex; align-items: center; justify-content: space-between; padding: 1.25rem; background: var(--bg-body); border-radius: var(--radius); border: 1px solid var(--border); transition: all 0.2s ease; position: relative; overflow: hidden;">
-                                        <!-- Decorative side accent -->
-                                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--primary);"></div>
-                                        
-                                        <div style="display: flex; align-items: center; gap: 1rem; padding-left: 1rem;">
-                                            <div>
-                                                <div style="font-weight: 700; color: var(--text-main); font-size: 1.1rem; margin-bottom: 0.25rem;">${p.subject}</div>
-                                                <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem;">
-                                                    <span style="background: var(--bg-card); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border);">📅 ${p.year}</span>
-                                                    <span style="background: var(--bg-card); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border);">📄 ${p.type}</span>
-                                                </div>
+                                    <div class="paper-item">
+                                        <div class="paper-item-accent" style="background-color: var(--primary);"></div>
+                                        <div class="paper-item-content">
+                                            <div class="paper-item-header">
+                                                <div class="paper-item-subject">${p.subject}</div>
+                                                <div class="paper-item-grade">${p.grade}</div>
+                                            </div>
+                                            <div class="paper-item-meta">
+                                                <span>📅 ${p.year}</span>
+                                                <span>📄 ${p.type}</span>
                                             </div>
                                         </div>
-
-                                        <div style="display: flex; align-items: center; gap: 1.5rem;">
-                                            <div style="text-align: right; padding-right: 1rem; border-right: 1px solid var(--border);">
-                                                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.05em; margin-bottom: 2px;">Grade</div>
-                                                <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary); line-height: 1;">${p.grade}</div>
-                                            </div>
-                                            
-                                            <button class="btn btn-secondary delete-paper-btn" data-id="${p.id}" style="
-                                                padding: 0.5rem; 
-                                                width: 36px; height: 36px; 
-                                                display: flex; align-items: center; justify-content: center;
-                                                border-radius: 50%;
-                                                color: var(--danger); 
-                                                border-color: transparent; 
-                                                background: rgba(239, 68, 68, 0.1);
-                                                transition: all 0.2s;
-                                            " title="Delete Result">
-                                                🗑️
-                                            </button>
-                                        </div>
+                                        <button class="delete-paper-btn" data-id="${p.id}" title="Delete Result">
+                                            🗑️
+                                        </button>
                                     </div>
                                 `).join('')}
                             </div>
-                            <style>
-                                .paper-item:hover {
-                                    transform: translateX(4px);
-                                    border-color: var(--primary);
-                                    background: var(--bg-card);
-                                    box-shadow: var(--shadow-sm);
-                                }
-                                .delete-paper-btn:hover {
-                                    background: var(--danger) !important;
-                                    color: white !important;
-                                    transform: scale(1.1);
-                                }
-                            </style>
                         `}
                     </div>
                 </div>
