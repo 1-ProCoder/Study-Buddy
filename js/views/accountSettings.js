@@ -98,15 +98,15 @@ class AccountSettingsView {
                         <div style="display: flex; flex-direction: column; gap: 1rem;">
                             <div>
                                 <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">Account Created</div>
-                                <div style="font-weight: 600;">${new Date(currentUser.createdAt).toLocaleDateString()}</div>
+                                <div style="font-weight: 600;">${currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'Unknown'}</div>
                             </div>
                             <div>
                                 <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">Last Login</div>
-                                <div style="font-weight: 600;">${new Date(currentUser.lastLogin).toLocaleDateString()}</div>
+                                <div style="font-weight: 600;">${currentUser.lastLogin ? new Date(currentUser.lastLogin).toLocaleDateString() : 'Never'}</div>
                             </div>
                             <div>
                                 <div style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.25rem;">User ID</div>
-                                <div style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">${currentUser.userId}</div>
+                                <div style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">${currentUser.userId || 'Unknown'}</div>
                             </div>
                         </div>
                     </div>

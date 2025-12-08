@@ -199,7 +199,7 @@ class PomodoroView {
                 const actualDuration = Math.round(this.totalTime / 60); // Convert seconds to minutes and round
                 this.store.logSession(actualDuration, this.selectedSubjectId);
             }
-            this.store.addXP(50);
+            this.store.addXP(50, 'pomodoro_session');
             
             // Show success message with subject name
             const subjects = this.store.getSubjects();

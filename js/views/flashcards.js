@@ -396,7 +396,7 @@ class FlashcardsView {
             } else {
                 const percentage = Math.round((score / deck.cards.length) * 100);
                 const xpEarned = score * 10;
-                this.store.addXP(xpEarned);
+                this.store.addXP(xpEarned, 'flashcard_quiz');
                 
                 // Update quiz challenge progress
                 this.store.updateChallengeProgress('quiz_complete', 1);

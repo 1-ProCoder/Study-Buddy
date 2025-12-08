@@ -165,11 +165,20 @@ class CountdownsView {
             const date = document.getElementById('countdown-date').value;
 
             if (title && date) {
+                // Ensure the date is valid and in the future
+                const selectedDate = new Date(date);
+                const now = new Date();
+                
+                if (selectedDate <= now) {
+                    alert('Please select a future date for the countdown.');
+                    return;
+                }
+                
                 this.store.addCountdown({
                     id: Date.now().toString(),
                     title,
                     type,
-                    date: new Date(date).toISOString()
+                    date: selectedDate.toISOString()
                 });
 
                 modal.remove();
@@ -177,6 +186,8 @@ class CountdownsView {
                     document.getElementById('app-view').innerHTML = html;
                     this.afterRender();
                 });
+            } else {
+                alert('Please fill in all fields.');
             }
         });
     }

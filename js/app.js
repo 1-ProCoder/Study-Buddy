@@ -79,88 +79,58 @@ applyAccessibility();
 // Check authentication and initialize app
 const initializeApp = async () => {
     const container = document.getElementById('app-view');
+    const loadingScreen = document.getElementById('loading-screen');
     if (!container) return;
 
-    // Initialize Firebase if using it
-    if (useFirebase) {
-        try {
-            await window.firebaseService.initialize();
-            await authManager.init(); // Initialize auth manager to set up listeners
-            
-            // Set up auth state listener for auto-login
-            window.firebaseService.onAuthStateChanged(async (user) => {
-                if (user) {
-                    // User is authenticated, load data
-                    if (store.initialize) {
-                        await store.initialize();
-                    }
-                    loadUserData();
-                    initializeMainApp();
-                } else {
-                    // User is not authenticated, show login screen
-                    const authView = new AuthView(authManager, async () => {
-                        // On successful auth, load user data and show main app
+    // Show loading screen
+    if (loadingScreen) {
+        loadingScreen.style.display = 'flex';
+    }
+
+    try {
+        // Initialize Firebase if using it
+        if (useFirebase) {
+            try {
+                await window.firebaseService.initialize();
+                await authManager.init(); // Initialize auth manager to set up listeners
+                
+                // Set up auth state listener for auto-login
+                window.firebaseService.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        // User is authenticated, load data
                         if (store.initialize) {
                             await store.initialize();
                         }
                         loadUserData();
                         initializeMainApp();
-                    });
-                    authView.render(container);
-                }
-            });
-            
-            // Check initial auth state
-            if (authManager.isAuthenticated()) {
-                if (store.initialize) {
-                    await store.initialize();
-                }
-                loadUserData();
-                initializeMainApp();
-            } else {
-                // Show auth view
-                const authView = new AuthView(authManager, async () => {
-                    if (store.initialize) {
-                        await store.initialize();
+                    } else {
+                        // User is not authenticated, show login screen
+                        if (typeof showLoginScreen === 'function') {
+                            showLoginScreen();
+                        } else {
+                            initializeMainApp();
+                        }
                     }
-                    loadUserData();
-                    initializeMainApp();
                 });
-                authView.render(container);
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                // Fallback to localStorage
+                initializeMainApp();
             }
-        } catch (error) {
-            console.error('Firebase initialization failed:', error);
-            // Fallback to localStorage
-            alert('Firebase connection failed. Using local storage mode.');
-            // Continue with localStorage flow
-            if (!authManager.isAuthenticated()) {
-                const authView = new AuthView(authManager, async () => {
-                    loadUserData();
-                    initializeMainApp();
-                });
-                authView.render(container);
-                return;
-            }
-            loadUserData();
+        } else {
+            // Direct initialization for localStorage
             initializeMainApp();
         }
-        return;
+    } catch (error) {
+        console.error('App initialization error:', error);
+        // Ensure loading screen is hidden even on error
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
+        }
     }
-
-    // localStorage mode
-    if (!authManager.isAuthenticated()) {
-        // Show auth view
-        const authView = new AuthView(authManager, async () => {
-            loadUserData();
-            initializeMainApp();
-        });
-        authView.render(container);
-        return;
-    }
-
-    // User is authenticated, load data and show main app
-    loadUserData();
-    initializeMainApp();
 };
 
 // Load user data from authenticated account
@@ -186,6 +156,8 @@ const loadUserData = () => {
 
 // Initialize main app (after authentication)
 const initializeMainApp = async () => {
+    const loadingScreen = document.getElementById('loading-screen');
+    
     updateGreeting();
     applyTheme(store.getSettings().theme);
     applyAccessibility();
@@ -422,11 +394,21 @@ let router = null;
 
 // Function to initialize router
 const initializeRouter = () => {
+    const loadingScreen = document.getElementById('loading-screen');
+    
     if (!router && typeof Router !== 'undefined') {
         router = new Router(routes);
         // Connect Router to Voice Manager
         if (voiceManager) {
             voiceManager.router = router;
+        }
+        
+        // Hide loading screen with a smooth transition
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
         }
     }
     return router;

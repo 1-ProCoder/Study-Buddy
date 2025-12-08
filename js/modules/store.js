@@ -56,7 +56,8 @@ class Store {
                 last_timetable_check: loadFromLocalStorage('last_timetable_check', currentAccount.last_timetable_check || null),
                 daily_xp_claimed: loadFromLocalStorage('daily_xp_claimed', currentAccount.daily_xp_claimed || false),
                 last_daily_xp: loadFromLocalStorage('last_daily_xp', currentAccount.last_daily_xp || null),
-                dailyActivities: loadFromLocalStorage('dailyActivities', currentAccount.dailyActivities || {})
+                dailyActivities: loadFromLocalStorage('dailyActivities', currentAccount.dailyActivities || {}),
+                dailyXPAwards: loadFromLocalStorage('dailyXPAwards', currentAccount.dailyXPAwards || {})
             };
         } else {
             // No account - try to load from localStorage or create new
@@ -91,7 +92,8 @@ class Store {
                 last_timetable_check: loadFromLocalStorage('last_timetable_check', null),
                 daily_xp_claimed: loadFromLocalStorage('daily_xp_claimed', false),
                 last_daily_xp: loadFromLocalStorage('last_daily_xp', null),
-                dailyActivities: loadFromLocalStorage('dailyActivities', {})
+                dailyActivities: loadFromLocalStorage('dailyActivities', {}),
+                dailyXPAwards: loadFromLocalStorage('dailyXPAwards', {})
             };
         }
 
@@ -388,7 +390,25 @@ class Store {
         this.save('user');
     }
 
-    async addXP(amount) {
+    async addXP(amount, xpType = 'general') {
+        // Check daily XP limit
+        const today = new Date().toISOString().split('T')[0];
+        if (!this.state.dailyXPAwards) {
+            this.state.dailyXPAwards = {};
+        }
+        
+        // Check if this XP type was already awarded today
+        if (this.state.dailyXPAwards[xpType] && this.state.dailyXPAwards[xpType].date === today) {
+            console.log(`${xpType} XP already awarded today`);
+            return false;
+        }
+        
+        // Track this XP award
+        this.state.dailyXPAwards[xpType] = {
+            date: today,
+            amount: amount
+        };
+        
         this.state.user.xp += amount;
         // Level up logic: Level * 100 XP required
         const xpNeeded = this.state.user.level * 100;
@@ -404,9 +424,10 @@ class Store {
             }
         }
         await this.save('user');
+        await this.save('dailyXPAwards');
         this.syncToSharedDatabase(); // Sync leaderboard stats
         
-        // Update shared leaderboard
+        // Update shared leaderboard with total XP (not just the amount)
         const useFirebase = window.firebaseConfig && 
                            window.firebaseConfig.apiKey !== "YOUR_API_KEY" &&
                            typeof window.FirebaseLeaderboardManager !== 'undefined';
@@ -414,12 +435,29 @@ class Store {
         if (typeof authManager !== 'undefined' && authManager.isAuthenticated()) {
             const currentUser = authManager.getCurrentUser();
             if (currentUser) {
+                // Calculate total XP including level progression
+                const totalXP = (this.state.user.level - 1) * 100 + this.state.user.xp;
+                
                 if (useFirebase) {
                     const leaderboardManager = new FirebaseLeaderboardManager(this, authManager);
-                    await leaderboardManager.updateXP(currentUser.userId, amount);
+                    // Update the user's total XP in leaderboard
+                    const leaderboardData = leaderboardManager.getAllUsers();
+                    const userEntry = leaderboardData.find(u => u.userId === currentUser.userId);
+                    if (userEntry) {
+                        userEntry.totalXP = totalXP;
+                        userEntry.level = this.state.user.level;
+                        leaderboardManager.saveLeaderboard(leaderboardData);
+                    }
                 } else if (typeof window.LeaderboardManager !== 'undefined') {
                     const leaderboardManager = new LeaderboardManager(this, authManager);
-                    leaderboardManager.updateXP(currentUser.userId, amount);
+                    // Update the user's total XP in leaderboard
+                    const leaderboardData = leaderboardManager.getAllUsers();
+                    const userEntry = leaderboardData.find(u => u.userId === currentUser.userId);
+                    if (userEntry) {
+                        userEntry.totalXP = totalXP;
+                        userEntry.level = this.state.user.level;
+                        leaderboardManager.saveLeaderboard(leaderboardData);
+                    }
                 }
             }
         }

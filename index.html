@@ -45,6 +45,40 @@
 </head>
 
 <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+    ">
+        <div style="
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border-top: 5px solid #fff;
+            animation: spin 1s linear infinite;
+        "></div>
+        <h2 style="color: #fff; margin-top: 20px; font-family: 'Inter', sans-serif; font-weight: 500;">Loading StudyBuddy...</h2>
+        <p style="color: rgba(255, 255, 255, 0.8); margin-top: 10px; font-family: 'Inter', sans-serif;">Preparing your study space</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
