@@ -314,19 +314,12 @@ class FirebaseStore {
     }
 
     async addXP(amount) {
-        this.state.user.xp += amount;
-        const xpNeeded = this.state.user.level * 100;
-        let leveledUp = false;
-
-        if (this.state.user.xp >= xpNeeded) {
-            this.state.user.level++;
-            this.state.user.xp -= xpNeeded;
-            leveledUp = true;
-        }
+        // Pure cumulative XP: just keep adding, no levels or resets
+        this.state.user.xp = (this.state.user.xp || 0) + amount;
 
         await this.save('user');
         
-        // Update leaderboard
+        // Update leaderboard with cumulative XP
         if (this.authManager.isAuthenticated()) {
             const userId = this.authManager.getCurrentUser().userId;
             await this.firebaseService.updateLeaderboard(userId, {
@@ -334,7 +327,7 @@ class FirebaseStore {
             });
         }
 
-        return leveledUp;
+        return false;
     }
 
     async logSession(duration, subjectId = null) {

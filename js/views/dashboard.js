@@ -15,9 +15,7 @@ class DashboardView {
         const hours = Math.floor(totalStudyTime / 60);
         const minutes = totalStudyTime % 60;
 
-        // XP Progress
-        const xpNeeded = user.level * 100;
-        const xpPercent = (user.xp / xpNeeded) * 100;
+        // XP is now pure cumulative, no levels
 
         // Motivational Quotes
         const quotes = [
@@ -38,14 +36,11 @@ class DashboardView {
                 <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end;">
                     <div>
                         <h2 style="font-weight: 800; color: var(--text-main); font-size: 2.5rem; margin-bottom: 0.5rem;">Good ${this.getTimeOfDay()}, ${user.name.split(' ')[0]}</h2>
-                        <p class="text-muted" style="font-size: 1.1rem;">Ready to level up your knowledge?</p>
+                        <p class="text-muted" style="font-size: 1.1rem;">Keep growing your XP every day.</p>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-weight: 700; font-size: 1.2rem; color: var(--primary);">Level ${user.level}</div>
-                        <div style="width: 150px; height: 8px; background: var(--border); border-radius: 10px; overflow: hidden; margin-top: 5px;">
-                            <div style="width: ${xpPercent}%; height: 100%; background: var(--primary); transition: width 0.5s ease;"></div>
-                        </div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">${user.xp} / ${xpNeeded} XP</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Total XP</div>
+                        <div style="font-weight: 800; font-size: 1.8rem; color: var(--primary);">${user.xp || 0}</div>
                     </div>
                 </div>
 
@@ -258,18 +253,17 @@ class DashboardView {
     }
 
     async afterRender() {
-        // Chain popups to prevent overlap
+        // Auto-claim free daily XP once per day on dashboard load (e.g., refresh)
         const showCheckIn = () => {
             if (!this.store.state.checkin_today) {
                 this.showDailyCheckInPopup();
             }
         };
 
-        if (this.store.canClaimDailyXP()) {
-            this.showDailyXPPopup(() => {
-                // Callback after XP popup closes
-                setTimeout(showCheckIn, 500);
-            });
+        if (typeof this.store.canClaimDailyXP === 'function' && this.store.canClaimDailyXP()) {
+            this.store.claimDailyXP();
+            this.showDailyXPSuccess();
+            setTimeout(showCheckIn, 500);
         } else {
             setTimeout(showCheckIn, 500);
         }

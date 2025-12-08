@@ -409,25 +409,14 @@ class Store {
             amount: amount
         };
         
+        // Pure cumulative XP: just keep adding, no levels or resets
         this.state.user.xp += amount;
-        // Level up logic: Level * 100 XP required
-        const xpNeeded = this.state.user.level * 100;
-        let leveledUp = false;
 
-        if (this.state.user.xp >= xpNeeded) {
-            this.state.user.level++;
-            this.state.user.xp -= xpNeeded;
-            this.unlockAchievement(`level_${this.state.user.level}`, `Reached Level ${this.state.user.level}`, '⭐');
-            leveledUp = true;
-            if (typeof Utils !== 'undefined' && Utils.triggerConfetti) {
-                Utils.triggerConfetti();
-            }
-        }
         await this.save('user');
         await this.save('dailyXPAwards');
         this.syncToSharedDatabase(); // Sync leaderboard stats
         
-        // Update shared leaderboard with total XP (not just the amount)
+        // Update shared leaderboard with total XP
         const useFirebase = window.firebaseConfig && 
                            window.firebaseConfig.apiKey !== "YOUR_API_KEY" &&
                            typeof window.FirebaseLeaderboardManager !== 'undefined';
@@ -435,34 +424,29 @@ class Store {
         if (typeof authManager !== 'undefined' && authManager.isAuthenticated()) {
             const currentUser = authManager.getCurrentUser();
             if (currentUser) {
-                // Calculate total XP including level progression
-                const totalXP = (this.state.user.level - 1) * 100 + this.state.user.xp;
+                const totalXP = this.state.user.xp;
                 
                 if (useFirebase) {
                     const leaderboardManager = new FirebaseLeaderboardManager(this, authManager);
-                    // Update the user's total XP in leaderboard
                     const leaderboardData = leaderboardManager.getAllUsers();
                     const userEntry = leaderboardData.find(u => u.userId === currentUser.userId);
                     if (userEntry) {
                         userEntry.totalXP = totalXP;
-                        userEntry.level = this.state.user.level;
                         leaderboardManager.saveLeaderboard(leaderboardData);
                     }
                 } else if (typeof window.LeaderboardManager !== 'undefined') {
                     const leaderboardManager = new LeaderboardManager(this, authManager);
-                    // Update the user's total XP in leaderboard
                     const leaderboardData = leaderboardManager.getAllUsers();
                     const userEntry = leaderboardData.find(u => u.userId === currentUser.userId);
                     if (userEntry) {
                         userEntry.totalXP = totalXP;
-                        userEntry.level = this.state.user.level;
                         leaderboardManager.saveLeaderboard(leaderboardData);
                     }
                 }
             }
         }
         
-        return leveledUp;
+        return false;
     }
 
     // Vision Board
