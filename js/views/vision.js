@@ -96,12 +96,23 @@ class VisionBoardView {
         document.getElementById('close-vision')?.addEventListener('click', closeModal);
         backdrop?.addEventListener('click', closeModal);
 
-        document.getElementById('save-vision')?.addEventListener('click', () => {
+        document.getElementById('save-vision')?.addEventListener('click', async () => {
             const text = document.getElementById('vision-text')?.value.trim();
             const image = document.getElementById('vision-image')?.value.trim() || 'https://images.unsplash.com/photo-1496449903678-68ddcb189a24?auto=format&fit=crop&w=500&q=60';
 
             if (text) {
-                this.store.addToVisionBoard({ id: Date.now(), text, image });
+                const item = { id: Date.now(), text, image };
+
+                // Support both local Store (addToVisionBoard) and FirebaseStore (saveVisionBoard)
+                if (typeof this.store.addToVisionBoard === 'function') {
+                    this.store.addToVisionBoard(item);
+                } else if (typeof this.store.saveVisionBoard === 'function') {
+                    const currentItems = this.store.getVisionBoard ? this.store.getVisionBoard() : [];
+                    await this.store.saveVisionBoard([...(currentItems || []), item]);
+                } else {
+                    console.error('No vision board save method available on store');
+                }
+
                 modal.remove();
                 this.render(document.getElementById('app-view')).then(() => this.afterRender());
             }
