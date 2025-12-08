@@ -161,8 +161,7 @@ class TimetableView {
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
                 this.store.saveTimetable(null);
-                this.render().then(html => {
-                    document.getElementById('app-view').innerHTML = html;
+                this.render(document.getElementById('app-view')).then(() => {
                     this.afterRender();
                 });
             });
@@ -176,8 +175,7 @@ class TimetableView {
             let eventModal = getEventModal();
             if (!eventModal) {
                 // If modal was removed for some reason, re-render to recreate it
-                this.render().then(html => {
-                    document.getElementById('app-view').innerHTML = html;
+                this.render(document.getElementById('app-view')).then(() => {
                     this.afterRender();
                     const recreated = getEventModal();
                     if (recreated) {
@@ -249,8 +247,7 @@ class TimetableView {
             timetable.schedule[day].push({ subject, duration, color });
             this.store.saveTimetable(timetable);
             // Re-render to update view
-            this.render().then(html => {
-                document.getElementById('app-view').innerHTML = html;
+            this.render(document.getElementById('app-view')).then(() => {
                 this.afterRender();
             });
         });
@@ -392,8 +389,7 @@ class TimetableView {
         };
 
         this.store.saveTimetable(timetable);
-        this.render().then(html => {
-            document.getElementById('app-view').innerHTML = html;
+        this.render(document.getElementById('app-view')).then(() => {
             this.afterRender();
         });
     }
